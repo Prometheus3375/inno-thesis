@@ -27,6 +27,9 @@ class Circle:
     def __repr__(self):
         return f'{self.__class__.__name__}(center={self._center}, r={self.radius:.2g})'
 
+    def is_point_inside(self, p: Point) -> bool:
+        return (p - self.center).r2 <= self.radius * self.radius
+
     def as_plotly_shape(self) -> dict:
         r = self.radius
         c = self._center
@@ -91,6 +94,18 @@ class Sector:
 
     def rotate(self, angle: Real):
         self.start_arm += angle
+
+    def is_point_inside(self, p: Point) -> bool:
+        if not self.circle.is_point_inside(p):
+            return False
+
+        start = self.start_arm
+        end = self.end_arm_reduced
+        fi = (p - self.center).fi
+        if end > start:
+            return start <= fi or fi <= end
+
+        return start <= fi <= end
 
     def __repr__(self):
         return (
