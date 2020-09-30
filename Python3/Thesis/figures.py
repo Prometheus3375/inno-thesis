@@ -27,6 +27,12 @@ class Circle:
     def __repr__(self):
         return f'{self.__class__.__name__}(center={self._center}, r={self.radius:.2g})'
 
+    def __eq__(self, other: 'Circle'):
+        return self.radius == other.radius and self._center == other._center
+
+    def __ne__(self, other: 'Circle'):
+        return self.radius != other.radius or self._center != other._center
+
     def is_point_inside(self, p: Point) -> bool:
         return (p - self.center).r2 <= self.radius * self.radius
 
@@ -97,6 +103,12 @@ class Sector:
         Rotates the sector by given angle clockwise
         """
         self.start_arm -= angle
+
+    def __eq__(self, other: 'Sector'):
+        return self._arc == other._arc and self._start_arm == self._start_arm and self.circle == other.circle
+
+    def __ne__(self, other: 'Sector'):
+        return self._arc != other._arc or self._start_arm != self._start_arm or self.circle != other.circle
 
     def is_point_inside(self, p: Point) -> bool:
         # Another way https://stackoverflow.com/a/13675772
