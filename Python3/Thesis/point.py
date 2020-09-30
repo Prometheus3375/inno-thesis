@@ -168,3 +168,6 @@ class Point:
 
     def __ne__(self, other: 'Point'):
         return self.x != other.x or self.y != other.y
+
+
+# TODO: create named and fixed point
