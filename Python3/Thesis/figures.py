@@ -110,6 +110,15 @@ class Sector:
     def __ne__(self, other: 'Sector'):
         return self._arc != other._arc or self._start_arm != self._start_arm or self.circle != other.circle
 
+    def is_angle_inside(self, fi: float) -> bool:
+        fi = reduce_angle(fi)
+        start = self.start_arm
+        end = self.end_arm_reduced
+        if end > start:
+            return end <= fi <= PI or -PI < fi <= start
+
+        return end <= fi <= start
+
     def is_point_inside(self, p: Point) -> bool:
         # Another way https://stackoverflow.com/a/13675772
 
@@ -119,13 +128,7 @@ class Sector:
         if p.r2 == 0:
             return True
 
-        start = self.start_arm
-        end = self.end_arm_reduced
-        fi = p.fi
-        if end > start:
-            return end <= fi <= PI or -PI < fi <= start
-
-        return end <= fi <= start
+        return self.is_angle_inside(p.fi)
 
     def __repr__(self):
         return (
