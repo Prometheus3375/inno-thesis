@@ -1,11 +1,13 @@
-from typing import Any, Iterable, List, MutableSequence, Tuple, TypeVar, Generic, Union, overload
+from typing import Any, Generic, Iterable, MutableSequence, Sequence, TypeVar, overload
 
 _T = TypeVar('_T')
 
 
-class CyclicList(MutableSequence, Generic[_T]):
+class CyclicTuple(Sequence, Generic[_T]):
+    __data_class__ = tuple
+
     def __init__(self, iterable: Iterable = ()):
-        self._data = list(iterable)
+        self._data = self.__data_class__(iterable)
 
     def _convert_index(self, i: int) -> int:
         l = len(self)
@@ -70,6 +72,31 @@ class CyclicList(MutableSequence, Generic[_T]):
 
         raise ValueError(f'Value {value} of type {type(value)} is not in list')
 
+    @overload
+    def __getitem__(self, i: int) -> _T: ...
+
+    @overload
+    def __getitem__(self, s: slice) -> 'CyclicList[_T]': ...
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._data[self._convert_index(item)]
+
+        if isinstance(item, slice):
+            return self.__class__(self._data[i] for i in self._convert_slice(item))
+
+        raise TypeError(f'list indices must be integers or slices, not {type(item)}')
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}{self._data}'
+
+
+class CyclicList(CyclicTuple, MutableSequence, Generic[_T]):
+    __data_class__ = list
+
     def append(self, value: _T):
         # Overwrite provided method for correct behavior
         self._data.append(value)
@@ -86,33 +113,13 @@ class CyclicList(MutableSequence, Generic[_T]):
         self._data.insert(self._convert_index(index), value)
 
     @overload
-    def __getitem__(self, i: int) -> _T:
-        ...
+    def __setitem__(self, i: int, v: _T): ...
 
     @overload
-    def __getitem__(self, s: slice) -> 'CyclicList[_T]':
-        ...
-
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            return self._data[self._convert_index(item)]
-
-        if isinstance(item, slice):
-            return self.__class__(self._data[i] for i in self._convert_slice(item))
-
-        raise TypeError(f'list indices must be integers or slices, not {type(item)}')
+    def __setitem__(self, s: slice, v: _T): ...
 
     @overload
-    def __setitem__(self, i: int, v: _T):
-        ...
-
-    @overload
-    def __setitem__(self, s: slice, v: _T):
-        ...
-
-    @overload
-    def __setitem__(self, s: slice, v: Iterable[_T]):
-        ...
+    def __setitem__(self, s: slice, v: Iterable[_T]): ...
 
     def __setitem__(self, item, value):
         if isinstance(item, int):
@@ -129,12 +136,10 @@ class CyclicList(MutableSequence, Generic[_T]):
             raise TypeError(f'list indices must be integers or slices, not {type(item)}')
 
     @overload
-    def __delitem__(self, i: int):
-        ...
+    def __delitem__(self, i: int): ...
 
     @overload
-    def __delitem__(self, i: slice):
-        ...
+    def __delitem__(self, i: slice): ...
 
     def __delitem__(self, item):
         if isinstance(item, int):
@@ -144,9 +149,3 @@ class CyclicList(MutableSequence, Generic[_T]):
             self._data = [v for i, v in enumerate(self._data) if i not in item]
         else:
             raise TypeError(f'list indices must be integers or slices, not {type(item)}')
-
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}{self._data}'
