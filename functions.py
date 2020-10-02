@@ -1,4 +1,5 @@
 from typing import List, Union
+
 from common import Real
 from point import Point
 
