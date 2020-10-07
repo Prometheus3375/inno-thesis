@@ -29,6 +29,7 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
         p = points[0]
         a = (p - sector.center).fi
         yield Group(reduce_angle(a + sector.arc / 2), (p,))
+        return
 
     angles = [(p - sector.center).fi for p in points]
 

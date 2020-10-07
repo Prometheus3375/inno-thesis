@@ -2,6 +2,7 @@ from common import *
 from functions import qbezeir_svg_given_middle
 from point import Point
 
+
 # TODO create special parent class with eq and ne methods
 
 
