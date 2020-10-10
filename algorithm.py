@@ -1,6 +1,6 @@
 from typing import Iterable, NamedTuple, Tuple
 
-from common import Real, TWOPI, reduce_angle
+from common import Real, TWOPI, reduce_angle, PI
 from data import CyclicTuple
 from figures import Sector
 from point import Point
@@ -37,7 +37,8 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
     points: CyclicTuple[Point] = CyclicTuple(points)
     angles: CyclicTuple[float] = CyclicTuple(angles)
 
-    sector.start_arm = angles[0]
+    start_angle = angles[0]
+    sector.start_arm = start_angle
     first = 0
     afterlast = 1
     # Find index of first point not inside
@@ -45,6 +46,8 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
         afterlast += 1
     while True:
         yield Group(sector.start_arm, tuple(points[i] for i in points.make_slice(first, afterlast)))
+
+        prev_angle = sector.start_arm
 
         a1 = angles[first]
         an1 = angles[afterlast]
@@ -77,5 +80,14 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
                 sector.rotate(rho)
                 first += 1
 
-        if sector.start_arm == angles[0]:
+        curr_angle = sector.start_arm
+        # For cases when before rotation start arm was in 3rd quarter (-π, -π/2]
+        # and after rotation in 2nd quarter [π/2, π]
+        if curr_angle > prev_angle:
+            prev_angle += TWOPI
+
+        # If before iteration start arm was bigger than start angle
+        # and after iteration not bigger than start angle,
+        # then break the iteration
+        if curr_angle <= start_angle < prev_angle:
             break
