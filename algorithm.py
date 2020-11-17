@@ -20,6 +20,8 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
     # TODO: create special structure to hold original point, its circle projection, angle and duplicates
     # TODO: Report bug about expected type
     # TODO: create abc class with method get_location() which returns fixed point
+    # TODO: report this bug again, but show that PyCharm suggests to exclude already excluded folder
+    # https://youtrack.jetbrains.com/issue/PY-44685
 
     points = [p for p in points if sector.circle.is_point_inside(p)]
     n = len(points)
