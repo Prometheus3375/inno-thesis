@@ -1,6 +1,7 @@
-from typing import Iterable, NamedTuple, Tuple
+from collections.abc import Iterable, Iterator
+from typing import NamedTuple
 
-from common import Real, TWOPI, reduce_angle, PI
+from common import Real, TWOPI, reduce_angle
 from data import CyclicTuple
 from figures import Sector
 from point import Point
@@ -12,10 +13,10 @@ def circular_subtraction(a1: float, a2: float) -> float:
 
 class Group(NamedTuple):
     start_arm: Real
-    points: Tuple[Point, ...]
+    points: tuple[Point, ...]
 
 
-def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterable[Group]:
+def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterator[Group]:
     # FIXME: fix problems when some points are duplicated
     # TODO: create special structure to hold original point, its circle projection, angle and duplicates
     # TODO: Report bug about expected type

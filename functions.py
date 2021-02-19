@@ -1,24 +1,24 @@
-from typing import List, Union
+from typing import Union
 
 from common import Real
 from point import Point
 
 
-def binomial_coefficients(degree: int) -> List[int]:
+def binomial_coefficients(degree: int) -> list[int]:
     if degree < 0:
         raise ValueError(f'Degree must be non-negative, got {degree}')
     if degree == 0:
         return [1]
     if degree == 1:
         return [1, 1]
-    prev = [1, 1]
+    previous = [1, 1]
     for d in range(2, degree + 1):
-        curr = [1]
+        current = [1]
         for i in range(1, d):
-            curr.append(prev[i - 1] + prev[i])
-        curr.append(1)
-        prev = curr
-    return prev
+            current.append(previous[i - 1] + previous[i])
+        current.append(1)
+        previous = current
+    return previous
 
 
 def bezier(t: Real, *values: Union[Real, Point]) -> Union[Real, Point]:
