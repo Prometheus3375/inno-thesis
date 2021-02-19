@@ -1,0 +1,114 @@
+structure Point:
+    real x, y  -- Cartesian coordinates
+    real r, fi  -- polar coordinates
+
+structure Circle:
+    real R  -- radius
+    Point center
+
+structure Sector:
+    real arc  -- angle
+    real start_arm  -- angle of first sector arm, always in range (-π, -π]
+    real end_arm  -- angle of last sector arm, equals start_arm - arc
+    Circle circle
+
+    rotate(real fi) -> void  -- rotates sector by angle a clockwise
+    is_angle_inside(real fi) -> bool  -- check whether an angle is inside sector
+    copy() -> Sector  -- copies this instance
+    freeze() -> void  -- forbids to change values of this instance
+
+structure PointAlias inherits Point:
+    Point ref  -- a point to which this alias refers
+
+structure CyclicList inherits List:
+    operator [int i] => List.operator [i % #this]
+    operator [int s:int e] => CyclicList(operator [i] for i in (s, s + 1, ..., e - 1))
+
+structure Group:
+    Sector sector
+    List<Point> points
+
+function circular_subtraction(real a1, real a2) -> real:
+    return a1 - a2 if a1 >= a2 else a1 - a2 + 2π
+
+function FindAllSectorGroups(Sector sector, List<Point> points) -> List<Group>:
+    -- preconditions:
+    -- #points >= 2
+    -- ∀p ∈ points -> p ∈ sector.circle
+    -- ∀p1, p2 ∈ points -> p1 ≠ p2
+    
+    n = #points
+    groups = []  -- empty list
+    -- a cyclic list of point aliases where .ref is original point
+    aliases = CyclicList(PointAlias(p - sector.circle.center, p) for p in points)
+    aliases.descending_sort(key = p -> p.fi)
+    
+    start_angle = aliases[0]
+    sector.start_arm = start_angle
+    first = 0
+    afterlast = 1
+    
+    -- Find index of first point not inside
+    while True:
+        -- assertions:
+        -- ...
+        if afterlast < n and sector.is_angle_inside(aliases[afterlast].fi):
+            break
+        afterlast += 1
+        
+    while True:
+        -- assertions:
+        -- ...
+        groups.append(sector.copy().freeze(), [p.ref for p in aliases[first:afterlast]])
+        
+        prev_angle = sector.start_arm
+
+        p1 = aliases[first]  -- first point
+        pn1 = aliases[afterlast]  -- first point after last
+        alpha = circular_subtraction(sector.start_arm, p1.fi)  -- angle between 1st point and start arm
+        omega = circular_subtraction(sector.end_arm, pn1.fi)  -- angle between 1st point outside sector and end arm
+
+        -- Try to rotate sector by such angle that
+        -- only first point inside (p1) will be excluded
+        -- and first point not inside (pn1) will not be included
+        if alpha >= omega:
+            -- Not possible to exclude p1 and not include pn1
+            -- Rotating end arm to pn1 forms a new group with the same first point
+            -- sector.end_arm = pn1.fi
+            sector.start_arm = pn1.fi + sector.arc
+            afterlast += 1
+        else:  -- alpha < omega
+            -- It is possible to exclude p1 and not include pn1
+            -- Rotate start arm to p1, this action will not change group
+            sector.start_arm = p1.fi
+
+            if points[first] is points[afterlast - 1]:
+                -- p1 is the only point inside
+                -- Rotate end arm to pn1, it will form a new group
+                -- sector.end_arm = pn1.fi
+                sector.start_arm = pn1.fi + sector.arc
+                first = afterlast
+                afterlast += 1
+            else:
+                gamma = circular_subtraction(p1.fi, aliases[first + 1].fi)  -- angle to second point inside
+                omega = circular_subtraction(sector.end_arm, pn1.fi)  -- angle to pn1 after rotation
+                rho = min(gamma, omega) / 2
+                sector.rotate(rho)
+                first += 1
+
+        curr_angle = sector.start_arm
+        -- For cases when before rotation start arm was in 3rd quarter (-π, -π/2]
+        -- and after rotation in 2nd quarter [π/2, π]
+        if curr_angle > prev_angle:
+            prev_angle += 2π
+
+        -- If before iteration start arm was bigger than start angle
+        -- and after iteration not bigger than start angle,
+        -- then break the iteration
+        if curr_angle <= start_angle < prev_angle:
+            break
+
+    -- postconditions:
+    -- groups contains all possible groups
+
+    return groups
