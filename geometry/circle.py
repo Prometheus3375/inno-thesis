@@ -53,7 +53,10 @@ class CircleBase:
         return (x * x + y * y) <= self.radius * self.radius
 
     def __contains__(self, item: PointBase, /):
-        return self.is_point_inside(item)
+        if isinstance(item, PointBase):
+            return self.is_point_inside(item)
+
+        return False
 
     def as_plotly_shape(self, /) -> dict:
         r = self.radius
