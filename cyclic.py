@@ -24,7 +24,7 @@ class CyclicSequence(Generic[T]):
     def _convert_index(self, i: int, /) -> int:
         return i % len(self)
 
-    def _indices_between(self, start: int, stop: int, step: int = 1, /) -> Iterator[int]:
+    def indices_between(self, start: int, stop: int, step: int = 1, /) -> Iterator[int]:
         if step == 0:
             raise ValueError('step cannot be zero')
 
@@ -53,7 +53,7 @@ class CyclicSequence(Generic[T]):
         start = _get_slice_value(s.start, 0)
         stop = _get_slice_value(s.stop, len(self))
         step = _get_slice_value(s.step, 1)
-        return self._indices_between(start, stop, step)
+        return self.indices_between(start, stop, step)
 
     def _check_emptiness(self, /):
         if len(self) == 0:
@@ -85,7 +85,7 @@ class CyclicSequence(Generic[T]):
 
         if len(self) != 0:
             getitem = super().__getitem__
-            for i in self._indices_between(start, stop):
+            for i in self.indices_between(start, stop):
                 v = getitem(i)
                 if v is value or v == value:
                     return i
