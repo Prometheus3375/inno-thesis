@@ -1,14 +1,11 @@
 import plotly.graph_objects as go
 
-from geometry.figures import Sector
+from geometry.sector import SectorBase
 
 
-# TODO: add slots to classes
-
-
-def draw_sector(sector: Sector):
-    center = sector.center
-    view_size = sector.r * 1.5
+def draw_sector(sector: SectorBase):
+    center = sector.circle.center
+    view_size = sector.circle.radius * 1.5
 
     fig = go.Figure()
     fig.add_shape(
