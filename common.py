@@ -1,9 +1,8 @@
-# noinspection PyUnresolvedReferences
 from math import atan2, ceil, cos, degrees as deg, floor, pi as PI, radians as rad, sin, sqrt, tan
-from typing import Union as _Union
+from typing import Union
 
-real = (int, float)
-Real = _Union[int, float]
+real = int, float
+Real = Union[int, float]
 
 TWOPI = 2 * PI
 
@@ -16,5 +15,9 @@ def reduce_angle(angle: Real) -> float:
         return angle
 
     n = angle / TWOPI
-    n = floor(n) if angle < 0 else ceil(n)
+    n = ceil(n) if n < 0 else floor(n)
     return angle - n * TWOPI
+
+
+__all__ = 'atan2', 'ceil', 'cos', 'deg', 'floor', 'PI', 'rad', 'sin', 'sqrt', 'tan', \
+          'real', 'Real', 'TWOPI', 'reduce_angle'
