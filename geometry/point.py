@@ -59,14 +59,15 @@ class PointBase:
         if format_spec == 'p':
             return self._str_polar()
 
-        raise ValueError(f'invalid format specifier \'{format_spec}\' for {self.__class__.__name__}; '
+        raise ValueError(f'invalid format specifier {format_spec!r} for {self.__class__.__name__}; '
                          f'allowed specifiers are \'c\' and \'p\'')
 
     def __repr__(self, /):
         return f'{self.__class__.__name__}({self._str_x()}, {self._str_y()})'
 
-    def _new(self, x: float, y: float, /):
-        return self.__class__(x, y)
+    @staticmethod
+    def _new(x: float, y: float, /):
+        raise NotImplementedError
 
     def copy(self, /):
         return self._new(self.x, self.y)
@@ -74,7 +75,7 @@ class PointBase:
     def __getnewargs__(self, /):
         return self._x, self._y
 
-    def fix(self, /):
+    def fix(self, /) -> 'FixedPoint':
         raise NotImplementedError
 
     def __eq__(self, other, /):
@@ -201,6 +202,10 @@ class FixedPoint(PointBase):
     def fi(self, /) -> float:
         return self._fi
 
+    @staticmethod
+    def _new(x: float, y: float, /):
+        return FixedPoint(x, y)
+
     def fix(self, /):
         return self
 
@@ -208,10 +213,104 @@ class FixedPoint(PointBase):
         return self._hash
 
 
-class NamedPointBase(PointBase):
+class MutablePoint(PointBase):
     __slots__ = ()
 
-    # No slots here due to inheritance conflict
+    @PointBase.x.setter
+    def x(self, value: Real, /):
+        self._x = float(value)
+
+    @PointBase.y.setter
+    def y(self, value: Real, /):
+        self._y = float(value)
+
+    @PointBase.r.setter
+    def r(self, r: Real, /):
+        fi = self.fi
+        self._x = r * cos(fi)
+        self._y = r * sin(fi)
+
+    @PointBase.fi.setter
+    def fi(self, fi: Real, /):
+        r = self.r
+        self._x = r * cos(fi)
+        self._y = r * sin(fi)
+
+    @staticmethod
+    def _new(x: float, y: float, /):
+        return MutablePoint(x, y)
+
+    def fix(self, /):
+        return FixedPoint(self.x, self.y)
+
+    def __iadd__(self, other, /):
+        if isinstance(other, real):
+            self._x += other
+            self._y += other
+            return self
+
+        if isinstance(other, PointBase):
+            self._x += other.x
+            self._y += other.y
+            return self
+
+        return NotImplemented
+
+    def __isub__(self, other, /):
+        if isinstance(other, real):
+            self._x -= other
+            self._y -= other
+            return self
+
+        if isinstance(other, PointBase):
+            self._x -= other.x
+            self._y -= other.y
+            return self
+
+        return NotImplemented
+
+    def __imul__(self, other, /):
+        if isinstance(other, real):
+            self._x *= other
+            self._y *= other
+            return self
+
+        if isinstance(other, PointBase):
+            self._x *= other.x
+            self._y *= other.y
+            return self
+
+        return NotImplemented
+
+    def __itruediv__(self, other, /):
+        if isinstance(other, real):
+            self._x /= other
+            self._y /= other
+            return self
+
+        if isinstance(other, PointBase):
+            self._x /= other.x
+            self._y /= other.y
+            return self
+
+        return NotImplemented
+
+    def __ifloordiv__(self, other, /):
+        if isinstance(other, real):
+            self._x //= other
+            self._y //= other
+            return self
+
+        if isinstance(other, PointBase):
+            self._x //= other.x
+            self._y //= other.y
+            return self
+
+        return NotImplemented
+
+
+class NamedPointBase(PointBase):
+    __slots__ = ()  # no slots here due to inheritance conflict
 
     def __init__(self, name: str, x: float, y: float, /):
         super().__init__(x, y)
@@ -221,12 +320,6 @@ class NamedPointBase(PointBase):
     @property
     def name(self, /) -> str:
         return self._name
-
-    def _new(self, x: float, y: float, name: str = None, /):
-        if name:
-            return self.__class__(name, x, y)
-
-        return super().__class__(x, y)
 
     def __str__(self, /):
         return f'{self.name}({self._str_x(False)}, {self._str_y(False)})'
@@ -248,19 +341,53 @@ class NamedFixedPoint(NamedPointBase, FixedPoint):
     __slots__ = '_name',
 
 
-@overload
-def point(x_or_r: Real, y_or_fi: Real, /,
-          polar: bool = False, fixed: Literal[True] = True) -> FixedPoint: ...
+class NamedMutablePoint(NamedPointBase, MutablePoint):
+    __slots__ = '_name',
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, /, name: str,
-          polar: bool = False, fixed: Literal[True] = True) -> NamedFixedPoint: ...
+def point(x_or_r: Real, y_or_fi: Real, /, *,
+          polar: bool = False) -> FixedPoint: ...
 
 
-def point(x_or_r: Real, y_or_fi: Real, /, name: str = None, polar: bool = False, fixed: bool = True):
-    if name == '':
-        raise ValueError('name of a point cannot be empty')
+@overload
+def point(x_or_r: Real, y_or_fi: Real, /, *,
+          fixed: Literal[True], polar: bool = False) -> FixedPoint: ...
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, /, *,
+          fixed: Literal[False], polar: bool = False) -> MutablePoint: ...
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
+          polar: bool = False) -> NamedFixedPoint: ...
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
+          fixed: Literal[True], polar: bool = False) -> NamedFixedPoint: ...
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
+          fixed: Literal[False], polar: bool = False) -> NamedMutablePoint: ...
+
+
+def point(x_or_r: Real, y_or_fi: Real, name: str = None, /, *, fixed: bool = True, polar: bool = False) -> PointBase:
+    if isinstance(name, str):
+        if name == '':
+            raise ValueError('name of a point cannot be empty')
+
+        if not ('A' <= name[0] <= 'Z'):
+            raise ValueError(f'name of a point must start with upper latin letter, got {name!r}')
+
+        for c in name:
+            if not ('A' <= c <= 'Z' or '0' <= c <= '9'):
+                raise ValueError(f'name of a point must contain only upper latin letters and digits, got {name!r}')
+    elif name is not None:
+        raise TypeError(f'name of a point must be a string, got {type(name)}')
 
     if polar:
         x = x_or_r * cos(y_or_fi)
@@ -276,4 +403,7 @@ def point(x_or_r: Real, y_or_fi: Real, /, name: str = None, polar: bool = False,
         return FixedPoint(x, y)
 
     else:
-        raise NotImplementedError(f'mutable points are not implemented')
+        if name:
+            return NamedMutablePoint(name, x, y)
+
+        return MutablePoint(x, y)
