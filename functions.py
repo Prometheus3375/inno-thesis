@@ -1,10 +1,10 @@
-from typing import Union
+from typing import Union, overload
 
 from common import Real
-from geometry.point import Point
+from geometry.point import PointBase
 
 
-def binomial_coefficients(degree: int) -> list[int]:
+def binomial_coefficients(degree: int, /) -> list[int]:
     if degree < 0:
         raise ValueError(f'Degree must be non-negative, got {degree}')
     if degree == 0:
@@ -21,7 +21,15 @@ def binomial_coefficients(degree: int) -> list[int]:
     return previous
 
 
-def bezier(t: Real, *values: Union[Real, Point]) -> Union[Real, Point]:
+@overload
+def bezier(t: Real, /, *values: Real) -> Real: ...
+
+
+@overload
+def bezier(t: Real, /, *values: Union[Real, PointBase]) -> PointBase: ...
+
+
+def bezier(t: Real, /, *values: Union[Real, PointBase]) -> Union[Real, PointBase]:
     if not (0 <= t <= 1):
         raise ValueError(f'Parameter must be in range [0, 1], got {t}')
 
@@ -38,6 +46,6 @@ def bezier(t: Real, *values: Union[Real, Point]) -> Union[Real, Point]:
     return ans
 
 
-def qbezeir_svg_given_middle(p0: Point, p2: Point, pm: Point) -> str:
+def qbezeir_svg_given_middle(p0: PointBase, p2: PointBase, pm: PointBase, /) -> str:
     p1 = (pm - p0 / 4 - p2 / 4) * 2
     return f'Q {p1.x} {p1.y} {p2.x} {p2.y}'
