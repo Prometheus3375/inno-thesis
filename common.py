@@ -1,10 +1,14 @@
-from math import atan2, ceil, cos, degrees as deg, floor, pi as PI, radians as rad, sin, sqrt, tan
+from math import ceil, degrees, floor, pi, radians
 from typing import Union
 
 real = int, float
 Real = Union[int, float]
 
+PI = pi
 TWOPI = 2 * PI
+
+deg = degrees
+rad = radians
 
 
 def reduce_angle(angle: Real) -> float:
@@ -19,5 +23,4 @@ def reduce_angle(angle: Real) -> float:
     return angle - n * TWOPI
 
 
-__all__ = 'atan2', 'ceil', 'cos', 'deg', 'floor', 'PI', 'rad', 'sin', 'sqrt', 'tan', \
-          'real', 'Real', 'TWOPI', 'reduce_angle'
+__all__ = 'real', 'Real', 'PI', 'TWOPI', 'deg', 'rad', 'reduce_angle'
