@@ -1,7 +1,7 @@
 from typing import Union
 
 from common import Real
-from point import Point
+from geometry.point import Point
 
 
 def binomial_coefficients(degree: int) -> list[int]:
