@@ -59,18 +59,18 @@ def find_all_groups(sector: MutableSector, points: Iterable[PointBase]) -> Itera
 
     # region Alias points
     center = sector.circle.center
-    xy2alias = {}
+    fi2alias = {}
     for p in points:
         po = p - center
-        alias = xy2alias.get((po.x, po.y))
+        alias = fi2alias.get(po.fi)
         if alias is None:
             alias = PointAlias(po.x, po.y)
-            xy2alias[po.x, po.y] = alias
+            fi2alias[alias.fi] = alias
 
         alias.alias(p)
 
-    aliases = CyclicList(sorted(xy2alias.values(), reverse=True))
-    del xy2alias, alias, p
+    aliases = CyclicList(sorted(fi2alias.values(), reverse=True))
+    del fi2alias, alias, p
     # endregion
 
     # region Handle trivial cases
