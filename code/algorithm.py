@@ -1,57 +1,107 @@
 from collections.abc import Iterable, Iterator
-from typing import NamedTuple
+from math import atan2
+from typing import NamedTuple, final
 
-from common import Real, TWOPI, reduce_angle
-from cyclic import CyclicTuple
-from geometry.point import PointBase as Point
-from geometry.sector import MutableSector
+from common import TWOPI
+from cyclic import CyclicList
+from geometry.point import FixedPoint, PointBase
+from geometry.sector import FixedSector, MutableSector
+from views import ListView
+
+
+@final
+class PointAlias(FixedPoint):
+    __slots__ = '_aliases', '_fi'
+
+    def __init__(self, x: float, y: float, /):
+        super().__init__(x, y)
+        self._fi = atan2(y, x)
+        self._aliases: list[PointBase] = []
+
+    @property
+    def fi(self, /):
+        return self._fi
+
+    @property
+    def aliases(self, /):
+        return ListView(self._aliases)
+
+    def alias(self, p: PointBase, /):
+        self._aliases.append(p)
+
+    def __lt__(self, other, /):
+        if isinstance(other, PointAlias):
+            return self._fi < other._fi
+
+        return NotImplemented
+
+
+class Group(NamedTuple):
+    sector: FixedSector
+    points: ListView[PointBase]
+
+    @classmethod
+    def form(cls, sector: FixedSector, aliases: Iterable[PointAlias]):
+        points = []
+        for alias in aliases:
+            points += alias.aliases
+
+        return cls(sector, ListView(points))
 
 
 def circular_subtraction(a1: float, a2: float) -> float:
     return a1 - a2 if a1 >= a2 else a1 - a2 + TWOPI
 
 
-class Group(NamedTuple):
-    start_arm: Real
-    points: tuple[Point, ...]
+def find_all_groups(sector: MutableSector, points: Iterable[PointBase]) -> Iterator[Group]:
+    # Remove points outside circle
+    points = [p for p in points if p in sector.circle]
 
+    # region Alias points
+    center = sector.circle.center
+    xy2alias = {}
+    for p in points:
+        po = p - center
+        alias = xy2alias.get((po.x, po.y))
+        if alias is None:
+            alias = PointAlias(po.x, po.y)
+            xy2alias[po.x, po.y] = alias
 
-def find_all_groups(sector: MutableSector, points: Iterable[Point]) -> Iterator[Group]:
-    # FIXME: fix problems when some points are duplicated
-    # TODO: create special structure to hold original point, its circle projection, angle and duplicates
+        alias.alias(p)
 
-    points = [p for p in points if sector.circle.is_point_inside(p)]
-    n = len(points)
+    aliases = CyclicList(sorted(xy2alias.values(), reverse=True))
+    del xy2alias, alias, p
+    # endregion
+
+    # region Handle trivial cases
+    n = len(aliases)
     if n == 0:
         return
     if n == 1:
-        p = points[0]
-        a = (p - sector.circle.center).fi
-        yield Group(reduce_angle(a + sector.arc / 2), (p,))
+        a = aliases[0]
+        sector.start_arm = a.fi + sector.arc / 2
+        yield Group.form(sector.fix(), [a])
         return
+    # endregion
 
-    angles = [(p - sector.circle.center).fi for p in points]
-
-    points, angles = zip(*sorted(zip(points, angles), key=lambda t: t[1], reverse=True))
-    points = CyclicTuple(points)
-    angles = CyclicTuple(angles)
-
-    start_angle = angles[0]
+    start_angle = aliases[0].fi
     sector.start_arm = start_angle
     first = 0
     afterlast = 1
+
     # Find index of first point not inside
-    while afterlast < n and sector.is_angle_inside(angles[afterlast]):
+    while afterlast < n and aliases[afterlast].fi in sector:
         afterlast += 1
+
     while True:
-        yield Group(sector.start_arm, tuple(points[i] for i in points.indices_between(first, afterlast)))
+        yield Group.form(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
 
         prev_angle = sector.start_arm
 
-        a1 = angles[first]
-        an1 = angles[afterlast]
-        alpha = circular_subtraction(sector.start_arm, a1)
-        omega = circular_subtraction(sector.end_arm, an1)
+        p1 = aliases[first]
+        pn1 = aliases[afterlast]
+        alpha = circular_subtraction(sector.start_arm, p1.fi)
+        omega = circular_subtraction(sector.end_arm, pn1.fi)
 
         # Try to rotate sector by such angle that
         # only first point inside (p1) will be excluded
@@ -59,22 +109,22 @@ def find_all_groups(sector: MutableSector, points: Iterable[Point]) -> Iterator[
         if alpha >= omega:
             # Not possible to exclude p1 and not include pn1
             # Rotating end arm to pn1 forms a new group with the same first point
-            sector.end_arm = an1
+            sector.end_arm = pn1.fi
             afterlast += 1
         else:  # alpha < omega
             # It is possible to exclude p1 and not include pn1
             # Rotate start arm to p1, this action will not change group
-            sector.start_arm = a1
+            sector.start_arm = p1.fi
 
             if points[first] is points[afterlast - 1]:
                 # p1 is the only point inside
                 # Rotate end arm to pn1, it will form a new group
-                sector.end_arm = an1
+                sector.end_arm = pn1.fi
                 first = afterlast
                 afterlast += 1
             else:
-                gamma = circular_subtraction(a1, angles[first + 1])  # angle to second point inside
-                omega = circular_subtraction(sector.end_arm, an1)  # angle to pn1 after rotation
+                gamma = circular_subtraction(p1.fi, aliases[first + 1].fi)  # angle to second point inside
+                omega = circular_subtraction(sector.end_arm, pn1.fi)  # angle to pn1 after rotation
                 rho = min(gamma, omega) / 2
                 sector.rotate(rho)
                 first += 1
