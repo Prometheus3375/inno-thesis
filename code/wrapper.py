@@ -8,6 +8,9 @@ P = TypeVar('P', bound=PointBase, covariant=True)
 
 @final
 class PointWrapper(Generic[P]):
+    """
+    Wraps points to make them hashable by identity
+    """
     __slots__ = '_point', '_hash'
 
     def __init__(self, point: P, /):
