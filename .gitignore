@@ -4,3 +4,4 @@ venv/
 # Common
 __pycache__/
 pycharm.py
+temp-plot.html
