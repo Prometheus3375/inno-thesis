@@ -20,7 +20,7 @@ class PointBase:
         return self._y
 
     @property
-    def r2(self) -> float:
+    def r2(self, /) -> float:
         return self.x * self.x + self.y * self.y
 
     @property
@@ -66,9 +66,8 @@ class PointBase:
     def __repr__(self, /):
         return f'{self.__class__.__name__}({self._str_x()}, {self._str_y()})'
 
-    @staticmethod
-    def _new_(x: float, y: float, /) -> 'PointBase':
-        raise NotImplementedError
+    def _new_(self, x: float, y: float, /):
+        return self.__class__(x, y)
 
     def copy(self, /):
         return self._new_(self.x, self.y)
@@ -189,10 +188,6 @@ class FixedPoint(PointBase):
         super().__init__(x, y)
         self._hash = hash((x, y))
 
-    @staticmethod
-    def _new_(x: float, y: float, /) -> 'FixedPoint':
-        return FixedPoint(x, y)
-
     def fix(self, /):
         return self
 
@@ -225,10 +220,6 @@ class MutablePoint(PointBase):
         r = self.r
         self._x = r * cos(fi)
         self._y = r * sin(fi)
-
-    @staticmethod
-    def _new_(x: float, y: float, /) -> 'MutablePoint':
-        return MutablePoint(x, y)
 
     def fix(self, /):
         return FixedPoint(self.x, self.y)
@@ -305,7 +296,7 @@ class MutablePoint(PointBase):
 class NamedPointBase(PointBase):
     __slots__ = ()  # no slots here due to inheritance conflict
 
-    def __init__(self, name: str, x: float, y: float, /):
+    def __init__(self, x: float, y: float, name: str, /):
         super().__init__(x, y)
         # noinspection PyUnresolvedReferences,PyDunderSlots
         self._name = name
@@ -313,6 +304,9 @@ class NamedPointBase(PointBase):
     @property
     def name(self, /) -> str:
         return self._name
+
+    def _new_(self, x: float, y: float, /):
+        return self.__class__(x, y, self.name)
 
     def __str__(self, /):
         return f'{self.name}({self._str_x(False)}, {self._str_y(False)})'
@@ -327,7 +321,7 @@ class NamedPointBase(PointBase):
         return f'{self.__class__.__name__}(name={self.name}, {self._str_x()}, {self._str_y()})'
 
     def __getnewargs__(self, /):
-        return self._name, self._x, self._y
+        return self._x, self._y, self._name
 
 
 class NamedFixedPoint(NamedPointBase, FixedPoint):
@@ -389,13 +383,13 @@ def Cartesian(x: Real, y: Real, name: str = None, /, *, fix: bool = True) -> Poi
 
     if fix:
         if name:
-            return NamedFixedPoint(name, x, y)
+            return NamedFixedPoint(x, y, name)
 
         return FixedPoint(x, y)
 
     else:
         if name:
-            return NamedMutablePoint(name, x, y)
+            return NamedMutablePoint(x, y, name)
 
         return MutablePoint(x, y)
 
