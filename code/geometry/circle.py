@@ -33,7 +33,7 @@ class CircleBase:
         return self.__class__(self.center.copy(), self.radius)
 
     def __getnewargs__(self, /):
-        return self.center, self.radius
+        return self._center, self._radius
 
     def fix(self, /) -> 'FixedCircle':
         raise NotImplementedError

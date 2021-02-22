@@ -44,14 +44,14 @@ class SectorBase:
     def __repr__(self, /):
         return (
             f'{self.__class__.__name__}('
-            f'{self._circle}, '
-            f'arc={deg(self._arc):.0f}°, '
-            f'start_arm={deg(self._arm):.0f}°'
+            f'{self.circle}, '
+            f'arc={deg(self.arc):.0f}°, '
+            f'start_arm={deg(self.start_arm):.0f}°'
             f')'
         )
 
     def copy(self, /):
-        return self.__class__(self._circle.copy(), self._arc, self._arm)
+        return self.__class__(self.circle.copy(), self.arc, self.start_arm)
 
     def __getnewargs__(self, /):
         return self._circle, self._arc, self._arm
@@ -64,19 +64,19 @@ class SectorBase:
 
     def __eq__(self, other, /):
         if isinstance(other, SectorBase):
-            return self._arc == other._arc and self._arm == self._arm and self._circle == other._circle
+            return self.arc == other.arc and self.start_arm == self.start_arm and self.circle == other.circle
 
         return NotImplemented
 
     def __ne__(self, other, /):
         if isinstance(other, SectorBase):
-            return self._arc != other._arc or self._arm != self._arm or self._circle != other._circle
+            return self.arc != other.arc or self.start_arm != self.start_arm or self.circle != other.circle
 
         return NotImplemented
 
     def is_angle_inside(self, fi: Real, /) -> bool:
         fi = reduce_angle(fi)
-        start = self._arm
+        start = self.start_arm
         end = self.end_arm_reduced
         if end > start:
             return end <= fi <= PI or -PI < fi <= start
@@ -110,7 +110,7 @@ class SectorBase:
         center = self.circle.center
         r = self.circle.radius
         n = ceil(self.arc / step_angle) - 1
-        p0 = Polar(r, self._arm) + center
+        p0 = Polar(r, self.start_arm) + center
         path = StringIO()
         path.write(
             f'M {center.x} {center.y} '
@@ -145,7 +145,7 @@ class FixedSector(SectorBase):
         return self
 
     def unfix(self, /):
-        return MutableSector(self._circle.unfix(), self._arc, self._arm)
+        return MutableSector(self.circle.unfix(), self.arc, self.start_arm)
 
     def __hash__(self, /):
         return self._hash
@@ -180,7 +180,7 @@ class MutableSector(SectorBase):
         self._arm = reduce_angle(value + self._arc)
 
     def fix(self, /):
-        return FixedSector(self._circle.fix(), self._arc, self._arm)
+        return FixedSector(self.circle.fix(), self.arc, self.start_arm)
 
     def unfix(self, /):
         return self
