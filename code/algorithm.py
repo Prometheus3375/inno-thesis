@@ -72,7 +72,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
         alias.alias(p)
 
     aliases = CyclicList(sorted(fi2alias.values(), reverse=True))
-    del fi2alias, alias, p
+    del fi2alias, alias, p, points
     # endregion
 
     # region Handle trivial cases
@@ -118,7 +118,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
             # Rotate start arm to p1, this action will not change group
             sector.start_arm = p1.fi
 
-            if points[first] is points[afterlast - 1]:
+            if aliases[first] is aliases[afterlast - 1]:
                 # p1 is the only point inside
                 # Rotate end arm to pn1, it will form a new group
                 sector.end_arm = pn1.fi
