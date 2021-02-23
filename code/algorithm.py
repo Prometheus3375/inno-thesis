@@ -5,7 +5,7 @@ from typing import NamedTuple, final
 from common import TWOPI
 from cyclic import CyclicList
 from geometry.point import FixedPoint, PointBase
-from geometry.sector import FixedSector, MutableSector
+from geometry.sector import FixedSector, MutableSector, SectorBase
 from views import ListView
 
 
@@ -53,7 +53,9 @@ def circular_subtraction(a1: float, a2: float) -> float:
     return a1 - a2 if a1 >= a2 else a1 - a2 + TWOPI
 
 
-def find_all_groups(sector: MutableSector, points: Iterable[PointBase]) -> Iterator[Group]:
+def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator[Group]:
+    # Copy sector to avoid manipulations outside
+    sector = sector.copy() if isinstance(sector, MutableSector) else sector.unfix()
     # Remove points outside circle
     points = [p for p in points if p in sector.circle]
 
