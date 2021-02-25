@@ -4,7 +4,7 @@ from typing import final
 from common import TWOPI, deg, rad
 from cyclic import CyclicList
 from geometry.point import PointBase
-from geometry.sector import FixedSector, MutableSector, SectorBase
+from geometry.sector import MutableSector, SectorBase
 from views import ListView
 
 
@@ -38,8 +38,8 @@ class PointAlias:
 class Group:
     __slots__ = '_sector', '_points', '_hash'
 
-    def __init__(self, sector: FixedSector, aliases: Iterable[PointAlias], /):
-        self._sector = sector
+    def __init__(self, sector: SectorBase, aliases: Iterable[PointAlias], /):
+        self._sector = sector.fix()
         points: list[PointBase] = []
         for alias in aliases:
             points += alias.points
@@ -186,7 +186,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase], /,
         counter = 0
         align_sector()
 
-    first_group = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
+    first_group = Group(sector, aliases[first:afterlast])
     yield first_group
     # endregion
 
@@ -226,7 +226,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase], /,
         if align:
             align_sector()
 
-        g = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
+        g = Group(sector, aliases[first:afterlast])
         # If new group is identical to the first one, stop iteration
         if g == first_group:
             break
