@@ -1,6 +1,8 @@
 structure Point:
-    real x, y  -- Cartesian coordinates
+    real x, y  -- cartesian coordinates
     real r, fi  -- polar coordinates
+    -- coordinates are synchronized
+    -- supports +, -, *, / operations
 
 structure Circle:
     real R  -- radius
@@ -9,24 +11,31 @@ structure Circle:
 structure Sector:
     real arc  -- angle
     real start_arm  -- angle of first sector arm, always in range (-π, -π]
-    real end_arm  -- angle of last sector arm, equals start_arm - arc
+    real end_arm  -- angle of last sector arm, always equals start_arm - arc
+    -- sector.end_arm = v => sector.start_arm = v + arc, ∀v ∈ ℝ
+    -- ∀v ∈ ℝ, sector.start_arm = v, if v is outside (-π, -π], it is cast to this range, otherwise, v is unchanged
     Circle circle
 
-    rotate(real fi) -> void  -- rotates sector by angle a clockwise
+    rotate(real fi) -> void  -- rotates sector by an angle clockwise
     is_angle_inside(real fi) -> bool  -- check whether an angle is inside sector
-    copy() -> Sector  -- copies this instance
-    freeze() -> void  -- forbids to change values of this instance
+    fix() -> Sector  -- copies this instance and forbids to change values of a copy
 
-structure PointAlias inherits Point:
+structure PointAlias:
     Point ref  -- a point to which this alias refers
+    real fi  -- equals (ref - center).fi
+    operator is(PointAlias other) => True if other is exactly this instance, False otherwise
+    -- sorting key is .fi
 
 structure CyclicList inherits List:
-    operator [int i] => List.operator [i % #this]
-    operator [int s:int e] => CyclicList(operator [i] for i in (s, s + 1, ..., e - 1))
+    operator #() => number of elements
+    operator [](int i) => super[i % #this]
+    operator [](int s:int e) => CyclicList(this[i] for i in (s, s + 1, ..., e - 1))
 
 structure Group:
     Sector sector
     List<Point> points
+
+    operator ==(Group other) => True, if other contains the same points as this, order does not matter; False otherwise
 
 function circular_subtraction(real a1, real a2) -> real:
     return a1 - a2 if a1 >= a2 else a1 - a2 + 2π
@@ -35,36 +44,33 @@ function FindAllSectorGroups(Sector sector, List<Point> points) -> List<Group>:
     -- preconditions:
     -- #points >= 2
     -- ∀p ∈ points -> p ∈ sector.circle
-    -- ∀p1, p2 ∈ points -> p1 ≠ p2
-    
-    n = #points
-    groups = []  -- empty list
+    -- ∀p1, p2 ∈ points -> (p1 - sector.circle.center).fi ≠ (p2 - sector.circle.center).fi
+
     -- a cyclic list of point aliases where .ref is original point
-    aliases = CyclicList(PointAlias(p - sector.circle.center, p) for p in points)
-    aliases.descending_sort(key = p -> p.fi)
-    
-    start_angle = aliases[0]
-    sector.start_arm = start_angle
+    aliases = CyclicList(PointAlias(p, (p - sector.circle.center).fi) for p in points)
+    aliases.descending_sort()
+
+    sector.start_arm = aliases[0].fi
     first = 0
     afterlast = 1
-    
-    -- Find index of first point not inside
-    while True:
-        -- assertions:
-        -- ...
-        if afterlast < n and sector.is_angle_inside(aliases[afterlast].fi):
-            break
-        afterlast += 1
-        
-    while True:
-        -- assertions:
-        -- ...
-        groups.append(sector.copy().freeze(), [p.ref for p in aliases[first:afterlast]])
-        
-        prev_angle = sector.start_arm
 
-        p1 = aliases[first]  -- first point
-        pn1 = aliases[afterlast]  -- first point after last
+    -- Find index of first point not inside
+    -- assertions A1:
+    -- ...
+    while afterlast < #aliases and sector.is_angle_inside(aliases[afterlast].fi):
+        afterlast += 1
+        -- assertions A1
+
+    -- Form first group
+    groups = []  -- empty list
+    first_group = Group(sector.fix(), [p.ref for p in aliases[first:afterlast]])
+    groups.append(first_group)
+
+    -- assertions A2:
+    -- ...
+    while True:
+        p1 = aliases[first]
+        pn1 = aliases[afterlast]
         alpha = circular_subtraction(sector.start_arm, p1.fi)  -- angle between 1st point and start arm
         omega = circular_subtraction(sector.end_arm, pn1.fi)  -- angle between 1st point outside sector and end arm
 
@@ -74,19 +80,17 @@ function FindAllSectorGroups(Sector sector, List<Point> points) -> List<Group>:
         if alpha >= omega:
             -- Not possible to exclude p1 and not include pn1
             -- Rotating end arm to pn1 forms a new group with the same first point
-            -- sector.end_arm = pn1.fi
-            sector.start_arm = pn1.fi + sector.arc
+            sector.end_arm = pn1.fi
             afterlast += 1
         else:  -- alpha < omega
             -- It is possible to exclude p1 and not include pn1
             -- Rotate start arm to p1, this action will not change group
             sector.start_arm = p1.fi
 
-            if points[first] is points[afterlast - 1]:
+            if aliases[first] is aliases[afterlast - 1]:
                 -- p1 is the only point inside
                 -- Rotate end arm to pn1, it will form a new group
-                -- sector.end_arm = pn1.fi
-                sector.start_arm = pn1.fi + sector.arc
+                sector.end_arm = pn1.fi
                 first = afterlast
                 afterlast += 1
             else:
@@ -96,17 +100,14 @@ function FindAllSectorGroups(Sector sector, List<Point> points) -> List<Group>:
                 sector.rotate(rho)
                 first += 1
 
-        curr_angle = sector.start_arm
-        -- For cases when before rotation start arm was in 3rd quarter (-π, -π/2]
-        -- and after rotation in 2nd quarter [π/2, π]
-        if curr_angle > prev_angle:
-            prev_angle += 2π
-
-        -- If before iteration start arm was bigger than start angle
-        -- and after iteration not bigger than start angle,
-        -- then break the iteration
-        if curr_angle <= start_angle < prev_angle:
+        g = Group(sector.fix(), [p.ref for p in aliases[first:afterlast]])
+        -- If new group is identical to the first one, stop iteration
+        if g == first_group:
             break
+
+        groups.append(g)
+
+        -- assertions A2
 
     -- postconditions:
     -- groups contains all possible groups
