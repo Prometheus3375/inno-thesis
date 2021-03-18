@@ -26,6 +26,7 @@ structure Group:
     Sector sector
     List<Point> points
 
+
 function reduce(Sector sector, List<Point> points) -> Map<real, List<Point>>:
     -- preconditions:
     -- ∀p ∈ points -> p ∈ sector.circle
