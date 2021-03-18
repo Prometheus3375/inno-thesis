@@ -209,7 +209,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase], /,
             # Rotate start arm to p1, this action will not change group
             sector.start_arm = p1.fi
 
-            if aliases[first] is aliases[afterlast - 1]:
+            if first == afterlast - 1:
                 # p1 is the only point inside
                 # Rotate end arm to pn1, it will form a new group
                 sector.end_arm = pn1.fi
