@@ -1,151 +1,152 @@
-from typing import Any, Generic, Iterable, MutableSequence, Sequence, TypeVar, overload
+from collections.abc import Collection, Iterable, Iterator, Sequence
+from math import ceil
+from typing import Any, Generic, TypeVar, overload
 
-_T = TypeVar('_T')
+T = TypeVar('T')
+S = TypeVar('S', bound=Sequence)
 
 
-class CyclicTuple(Sequence, Generic[_T]):
-    __data_class__ = tuple
+def _get_slice_value(o: Any, if_none: int) -> int:
+    if o is None:
+        return if_none
+    if isinstance(o, int):
+        return o
+    if (idx := getattr(o, '__index__', None)) and callable(idx) and isinstance(i := idx(), int):
+        # noinspection PyUnboundLocalVariable
+        return i
 
-    def __init__(self, iterable: Iterable = ()):
-        self._data = self.__data_class__(iterable)
+    raise TypeError(f'slice indices must be integers or None or have an __index__ method, got {o!r}')
 
-    def _convert_index(self, i: int) -> int:
-        l = len(self)
-        if l == 0:
-            return i
 
-        return i % l
+class CyclicSequence(Generic[T]):
+    __slots__ = ()
 
-    def make_slice(self, start: int = 0, stop: int = None, step: int = 1) -> Iterable[int]:
-        if stop is None:
-            stop = len(self)
+    def _convert_index(self, i: int, /) -> int:
+        return i % len(self)
+
+    def _indices_between(self, start: int, stop: int, step: int = 1, /) -> Iterator[int]:
+        if step == 0:
+            raise ValueError('step cannot be zero')
+
         if step > 0:
             compare = int.__lt__
+            if start > stop:
+                stop += ceil((start - stop) / len(self)) * len(self)
         else:
             compare = int.__gt__
+            if start < stop:
+                start += ceil((stop - start) / len(self)) * len(self)
 
-        while compare(start, stop):
-            yield self._convert_index(start)
+        if start != stop:
+            # compare(start, stop) is True here
+            start_idx = self._convert_index(start)
+            yield start_idx
             start += step
 
-    @staticmethod
-    def _get_slice_val(val: Any, if_none: int) -> int:
-        if val is None:
-            return if_none
+            # yield indices until the first yielded index is met again
+            while compare(start, stop) and (y := self._convert_index(start)) != start_idx:
+                # noinspection PyUnboundLocalVariable
+                yield y
+                start += step
 
-        if isinstance(val, int):
-            return val
+    def _slice_indices(self, s: slice, /) -> Iterator[int]:
+        start = _get_slice_value(s.start, 0)
+        stop = _get_slice_value(s.stop, len(self))
+        step = _get_slice_value(s.step, 1)
+        return self._indices_between(start, stop, step)
 
-        if hasattr(val, '__index__'):
-            idx = getattr(val, '__index__')
-            if callable(idx):
-                idx = idx()
-
-            if isinstance(idx, int):
-                return idx
-
-        raise TypeError(
-            f'slice indices must be integers or None or have an __index__ method, got {val} of type {type(val)}'
-        )
-
-    def _convert_slice(self, s: slice) -> Iterable[int]:
-        return self.make_slice(
-            self._get_slice_val(s.start, 0),
-            self._get_slice_val(s.stop, len(self)),
-            self._get_slice_val(s.step, 1),
-        )
-
-    def __iter__(self):
-        # Overwrite provided method to avoid infinite loop
-        return iter(self._data)
-
-    def __reversed__(self):
-        # Overwrite provided method for speed-up
-        return reversed(self._data)
-
-    def index(self, value: _T, start: int = 0, end: int = None) -> int:
-        # Overwrite provided method to avoid infinite loop, for speed-up, and for correct behavior
-        slice_ = set(self.make_slice(start, end))
-        for i in slice_:
-            if self._data[i] is value or self._data[i] == value:
-                return i
-
-        raise ValueError(f'Value {value} of type {type(value)} is not in list')
+    def _check_emptiness(self, /):
+        if len(self) == 0:
+            raise IndexError(f'{self.__class__.__name__} is empty')
 
     @overload
-    def __getitem__(self, i: int) -> _T: ...
+    def __getitem__(self, index: int, /) -> T: ...
 
     @overload
-    def __getitem__(self, s: slice) -> 'CyclicList[_T]': ...
+    def __getitem__(self: S, indices: slice, /) -> S: ...
 
-    def __getitem__(self, item):
+    def __getitem__(self, item, /):
+        self._check_emptiness()
+
         if isinstance(item, int):
-            return self._data[self._convert_index(item)]
+            return super().__getitem__(self._convert_index(item))
 
         if isinstance(item, slice):
-            return self.__class__(self._data[i] for i in self._convert_slice(item))
+            getitem = super().__getitem__
+            # noinspection PyArgumentList
+            return self.__class__(getitem(i) for i in self._slice_indices(item))
 
-        raise TypeError(f'list indices must be integers or slices, not {type(item)}')
+        raise TypeError(f'{self.__class__.__name__} indices must be integers or slices, '
+                        f'not {item.__class__.__name__}')
 
-    def __len__(self) -> int:
-        return len(self._data)
+    def index(self, value: T, start: int = 0, stop: int = None) -> int:
+        if stop is None:
+            stop = len(self)
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}{self._data}'
+        if len(self) != 0:
+            getitem = super().__getitem__
+            for i in self._indices_between(start, stop):
+                v = getitem(i)
+                if v is value or v == value:
+                    return i
+
+        raise ValueError(f'{value!r} is not in {self.__class__.__name__}')
 
 
-class CyclicList(CyclicTuple, MutableSequence, Generic[_T]):
-    __data_class__ = list
-
-    def append(self, value: _T):
-        # Overwrite provided method for correct behavior
-        self._data.append(value)
-
-    def extend(self, values: Iterable[_T]):
-        # Overwrite provided method for speed-up
-        self._data.extend(values)
-
-    def clear(self):
-        # Overwrite provided method for speed-up
-        self._data = []
-
-    def insert(self, index: int, value: _T):
-        self._data.insert(self._convert_index(index), value)
+class MutableCyclicSequence(CyclicSequence[T]):
+    __slots__ = ()
 
     @overload
-    def __setitem__(self, i: int, v: _T): ...
+    def __setitem__(self, index: int, value: T, /): ...
 
     @overload
-    def __setitem__(self, s: slice, v: _T): ...
+    def __setitem__(self, indices: slice, values: Iterable[T], /): ...
 
-    @overload
-    def __setitem__(self, s: slice, v: Iterable[_T]): ...
+    def __setitem__(self, item, value, /):
+        self._check_emptiness()
 
-    def __setitem__(self, item, value):
         if isinstance(item, int):
-            self._data[self._convert_index(item)] = value
+            super().__setitem__(self._convert_index(item), value)
         elif isinstance(item, slice):
-            item = self._convert_slice(item)
-            if isinstance(value, Iterable):
-                for i, v in zip(item, value):
-                    self._data[i] = v
-            else:
-                for i in item:
-                    self._data[i] = value
+            indices = tuple(self._slice_indices(item))
+            setitem = super().__setitem__
+            if not isinstance(value, Collection):
+                value = tuple(value)
+
+            if len(indices) != len(value):
+                raise ValueError(f'slice and value have different lengths, {len(indices)} and {len(value)}')
+
+            for i, v in zip(indices, value):
+                setitem(i, v)
         else:
-            raise TypeError(f'list indices must be integers or slices, not {type(item)}')
+            raise TypeError(f'{self.__class__.__name__} indices must be integers or slices, '
+                            f'not {item.__class__.__name__}')
 
     @overload
-    def __delitem__(self, i: int): ...
+    def __delitem__(self, index: int, /): ...
 
     @overload
-    def __delitem__(self, i: slice): ...
+    def __delitem__(self, indices: slice, /): ...
 
-    def __delitem__(self, item):
+    def __delitem__(self, item, /):
+        self._check_emptiness()
+
         if isinstance(item, int):
-            del self._data[self._convert_index(item)]
+            super().__delitem__(self._convert_index(item))
         elif isinstance(item, slice):
-            item = set(self._convert_slice(item))
-            self._data = [v for i, v in enumerate(self._data) if i not in item]
+            indices = set(self._slice_indices(item))
+            delitem = super().__delitem__
+            for i in range(len(self) - 1, -1, -1):
+                if i not in indices:
+                    delitem(i)
         else:
-            raise TypeError(f'list indices must be integers or slices, not {type(item)}')
+            raise TypeError(f'{self.__class__.__name__} indices must be integers or slices, '
+                            f'not {item.__class__.__name__}')
+
+
+class CyclicTuple(CyclicSequence, tuple):
+    __slots__ = ()
+
+
+class CyclicList(MutableCyclicSequence, list):
+    __slots__ = ()
