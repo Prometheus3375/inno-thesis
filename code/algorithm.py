@@ -1,33 +1,31 @@
 from collections.abc import Iterable, Iterator
-from math import atan2
 from typing import final
 
 from common import TWOPI, deg, rad
 from cyclic import CyclicList
-from geometry.point import FixedPoint, PointBase
+from geometry.point import PointBase
 from geometry.sector import FixedSector, MutableSector, SectorBase
 from views import ListView
 
 
 @final
-class PointAlias(FixedPoint):
-    __slots__ = '_aliases', '_fi'
+class PointAlias:
+    __slots__ = '_points', '_fi'
 
-    def __init__(self, x: float, y: float, /):
-        super().__init__(x, y)
-        self._fi = atan2(y, x)
-        self._aliases: list[PointBase] = []
+    def __init__(self, fi: float, /):
+        self._fi = fi
+        self._points: list[PointBase] = []
 
     @property
     def fi(self, /):
         return self._fi
 
     @property
-    def aliases(self, /):
-        return ListView(self._aliases)
+    def points(self, /):
+        return ListView(self._points)
 
     def alias(self, p: PointBase, /):
-        self._aliases.append(p)
+        self._points.append(p)
 
     def __lt__(self, other, /):
         if isinstance(other, PointAlias):
@@ -44,7 +42,7 @@ class Group:
         self._sector = sector
         points: list[PointBase] = []
         for alias in aliases:
-            points += alias.aliases
+            points += alias.points
 
         self._points = points
         ids = self.points_ids
@@ -111,16 +109,16 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase], /,
     center = sector.circle.center
     fi2alias = {}
     for p in points:
-        po = p - center
-        alias = fi2alias.get(po.fi)
+        fi = (p - center).fi
+        alias = fi2alias.get(fi)
         if alias is None:
-            alias = PointAlias(po.x, po.y)
+            alias = PointAlias(fi)
             fi2alias[alias.fi] = alias
 
         alias.alias(p)
 
     aliases = CyclicList(sorted(fi2alias.values(), reverse=True))
-    del fi2alias, alias, p, points
+    del points, center, fi2alias
     # endregion
 
     # region Handle trivial cases
