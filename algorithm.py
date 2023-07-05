@@ -3,8 +3,8 @@ from typing import NamedTuple
 
 from common import Real, TWOPI, reduce_angle
 from cyclic import CyclicTuple
-from geometry.figures import Sector
-from geometry.point import Point
+from geometry.point import PointBase as Point
+from geometry.sector import MutableSector
 
 
 def circular_subtraction(a1: float, a2: float) -> float:
@@ -16,13 +16,9 @@ class Group(NamedTuple):
     points: tuple[Point, ...]
 
 
-def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterator[Group]:
+def find_all_groups(sector: MutableSector, points: Iterable[Point]) -> Iterator[Group]:
     # FIXME: fix problems when some points are duplicated
     # TODO: create special structure to hold original point, its circle projection, angle and duplicates
-    # TODO: Report bug about expected type
-    # TODO: create abc class with method get_location() which returns fixed point
-    # TODO: report this bug again, but show that PyCharm suggests to exclude already excluded folder
-    # https://youtrack.jetbrains.com/issue/PY-44685
 
     points = [p for p in points if sector.circle.is_point_inside(p)]
     n = len(points)
@@ -30,15 +26,15 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterator[Group]:
         return
     if n == 1:
         p = points[0]
-        a = (p - sector.center).fi
+        a = (p - sector.circle.center).fi
         yield Group(reduce_angle(a + sector.arc / 2), (p,))
         return
 
-    angles = [(p - sector.center).fi for p in points]
+    angles = [(p - sector.circle.center).fi for p in points]
 
     points, angles = zip(*sorted(zip(points, angles), key=lambda t: t[1], reverse=True))
-    points: CyclicTuple[Point] = CyclicTuple(points)
-    angles: CyclicTuple[float] = CyclicTuple(angles)
+    points = CyclicTuple(points)
+    angles = CyclicTuple(angles)
 
     start_angle = angles[0]
     sector.start_arm = start_angle
@@ -48,7 +44,7 @@ def find_all_groups(sector: Sector, points: Iterable[Point]) -> Iterator[Group]:
     while afterlast < n and sector.is_angle_inside(angles[afterlast]):
         afterlast += 1
     while True:
-        yield Group(sector.start_arm, tuple(points[i] for i in points.make_slice(first, afterlast)))
+        yield Group(sector.start_arm, tuple(points[i] for i in points.indices_between(first, afterlast)))
 
         prev_angle = sector.start_arm
 
