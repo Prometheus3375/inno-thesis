@@ -51,8 +51,8 @@ class Circle:
 class Sector:
     def __init__(self, circle: Circle, arc_size: Real, start_arm: Real = PI):
         self.circle = circle
-        self.arc = arc_size
-        self.start_arm = start_arm
+        self._arc = arc_size
+        self._start_arm = start_arm
 
     @property
     def arc(self):
@@ -100,7 +100,7 @@ class Sector:
 
     def rotate(self, angle: Real):
         """
-        Rotates the sector by given angle clockwise
+        Rotates the sector by the given angle clockwise
         """
         self.start_arm -= angle
 
@@ -123,7 +123,7 @@ class Sector:
         end = self.end_arm_reduced
         fi = p.fi
         if end > start:
-            return end <= fi or fi <= start
+            return end <= fi <= PI or -PI < fi <= start
 
         return end <= fi <= start
 
