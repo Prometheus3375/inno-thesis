@@ -2,7 +2,7 @@ from collections.abc import Iterable, Iterator
 from math import atan2
 from typing import final
 
-from common import TWOPI
+from common import TWOPI, deg, rad
 from cyclic import CyclicList
 from geometry.point import FixedPoint, PointBase
 from geometry.sector import FixedSector, MutableSector, SectorBase
@@ -91,11 +91,17 @@ class Group:
         return self._hash
 
 
-def circular_subtraction(a1: float, a2: float) -> float:
+one_deg = rad(1)
+two_deg = rad(2)
+
+
+def circular_subtraction(a1: float, a2: float, /) -> float:
     return a1 - a2 if a1 >= a2 else a1 - a2 + TWOPI
 
 
-def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator[Group]:
+def find_all_groups(sector: SectorBase, points: Iterable[PointBase], /,
+                    align: bool = False, *,
+                    debug: bool = False) -> Iterator[Group]:
     # Copy sector to avoid manipulations outside
     sector = sector.copy() if isinstance(sector, MutableSector) else sector.unfix()
     # Remove points outside circle
@@ -128,8 +134,8 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
         return
     # endregion
 
-    start_angle = aliases[0].fi
-    sector.start_arm = start_angle
+    # region Init sector and indexes
+    sector.start_arm = aliases[0].fi
     first = 0
     afterlast = 1
 
@@ -137,8 +143,54 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
     while afterlast < n and aliases[afterlast].fi in sector:
         afterlast += 1
 
+    # endregion
+
+    def align_sector():
+        nonlocal counter, aliases, first, afterlast, sector, debug
+        counter += 1
+
+        a1 = aliases[first]
+        an = aliases[afterlast - 1]
+
+        teta = circular_subtraction(a1.fi, an.fi)
+        wing = (sector.arc - teta) / 2
+        delta1 = circular_subtraction(aliases[first - 1].fi, a1.fi)
+        delta2 = circular_subtraction(an.fi, aliases[afterlast].fi)
+
+        # Do not align if wing is less than 1° or deltas are less than 2°
+        if wing < one_deg or delta1 < two_deg or delta2 < two_deg:
+            if debug: print(f'{counter}. wing or deltas are to small: '
+                            f'{deg(wing)=:.1f}°, {deg(delta1)=:.1f}°, {deg(delta2)=:.1f}°')
+            return
+
+        if wing < delta1 and wing < delta2:
+            sector.start_arm = a1.fi + wing
+
+            if debug: print(f'{counter}. wing < delta1 and wing < delta2: '
+                            f'{deg(wing)=:.0f}°, {deg(delta1)=:.0f}°, {deg(delta2)=:.0f}°')
+
+        elif wing < delta1:  # wing >= delta2
+            sector.end_arm = an.fi - delta2 / 2
+
+            if debug: print(f'{counter}. wing < delta1 and wing >= delta2: '
+                            f'{deg(wing)=:.0f}°, {deg(delta1)=:.0f}°, {deg(delta2)=:.0f}°')
+
+        elif wing < delta2:  # wing >= delta1
+            sector.start_arm = a1.fi + delta1 / 2
+
+            if debug: print(f'{counter}. wing >= delta1 and wing < delta2: '
+                            f'{deg(wing)=:.0f}°, {deg(delta1)=:.0f}°, {deg(delta2)=:.0f}°')
+        else:
+            raise RuntimeError('unreachable code reached')
+
+    # region Form first group
+    if align:
+        counter = 0
+        align_sector()
+
     first_group = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
     yield first_group
+    # endregion
 
     while True:
         p1 = aliases[first]
@@ -173,6 +225,9 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
                 first += 1
 
         # Form new group
+        if align:
+            align_sector()
+
         g = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
         # If new group is identical to the first one, stop iteration
         if g == first_group:
