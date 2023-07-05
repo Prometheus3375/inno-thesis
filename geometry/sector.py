@@ -10,7 +10,7 @@ from .point import PointBase, polar
 
 def check_arc(value: float, /):
     if not (0 < value < TWOPI):
-        raise ValueError(f'Arc should be in range (0°, 360°), got {deg(value):.0g}°')
+        raise ValueError(f'arc should be in range (0°, 360°), got {deg(value):.0g}°')
 
 
 class SectorBase:
