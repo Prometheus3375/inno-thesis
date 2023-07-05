@@ -16,7 +16,7 @@ class PointBase:
 
     @property
     def y(self, /) -> float:
-        return self._x
+        return self._y
 
     @property
     def r2(self) -> float:
@@ -29,12 +29,6 @@ class PointBase:
     @property
     def fi(self, /) -> float:
         return atan2(self.y, self.x)
-
-    def _new(self, x: float, y: float, /):
-        return self.__class__(x, y)
-
-    def copy(self, /):
-        return self._new(self.x, self.y)
 
     def _str_x(self, named: bool = True, /):
         return f'x={self.x:.2g}' if named else f'{self.x:.2g}'
@@ -71,14 +65,29 @@ class PointBase:
     def __repr__(self, /):
         return f'{self.__class__.__name__}({self._str_x()}, {self._str_y()})'
 
+    def _new(self, x: float, y: float, /):
+        return self.__class__(x, y)
+
+    def copy(self, /):
+        return self._new(self.x, self.y)
+
     def __getnewargs__(self, /):
         return self._x, self._y
 
-    def __eq__(self, other: 'PointBase', /):
-        return self.x == other.x and self.y == other.y
+    def fix(self, /):
+        raise NotImplementedError
 
-    def __ne__(self, other: 'PointBase', /):
-        return self.x != other.x or self.y != other.y
+    def __eq__(self, other, /):
+        if isinstance(other, PointBase):
+            return self.x == other.x and self.y == other.y
+
+        return NotImplemented
+
+    def __ne__(self, other, /):
+        if isinstance(other, PointBase):
+            return self.x != other.x or self.y != other.y
+
+        return NotImplemented
 
     def __neg__(self, /):
         return self._new(-self.x, -self.y)
@@ -169,17 +178,20 @@ class PointBase:
 
 
 class FixedPoint(PointBase):
-    __slots__ = '_hash', '_fi', '_r'
+    __slots__ = '_hash', '_fi', '_r2', '_r'
+
+    # r2 is necessary to store, because sqrt(a) * sqrt(a) != a in general
 
     def __init__(self, x: float, y: float, /):
         super().__init__(x, y)
-        self._r = PointBase.r.fget()
-        self._fi = PointBase.fi.fget()
+        self._r2 = x * x + y * y
+        self._r = sqrt(self._r2)
+        self._fi = atan2(y, x)
         self._hash = hash((x, y))
 
     @PointBase.r2.getter
     def r2(self, /) -> float:
-        return self._r * self._r
+        return self._r2
 
     @PointBase.r.getter
     def r(self, /) -> float:
@@ -189,15 +201,21 @@ class FixedPoint(PointBase):
     def fi(self, /) -> float:
         return self._fi
 
+    def fix(self, /):
+        return self
+
     def __hash__(self, /):
         return self._hash
 
 
-class NamedPoint(PointBase):
-    __slots__ = '_name',
+class NamedPointBase(PointBase):
+    __slots__ = ()
+
+    # No slots here due to inheritance conflict
 
     def __init__(self, name: str, x: float, y: float, /):
         super().__init__(x, y)
+        # noinspection PyUnresolvedReferences,PyDunderSlots
         self._name = name
 
     @property
@@ -222,9 +240,12 @@ class NamedPoint(PointBase):
     def __repr__(self, /):
         return f'{self.__class__.__name__}(name={self.name}, {self._str_x()}, {self._str_y()})'
 
+    def __getnewargs__(self, /):
+        return self._name, self._x, self._y
 
-class NamedFixedPoint(NamedPoint, PointBase):
-    __slots__ = ()
+
+class NamedFixedPoint(NamedPointBase, FixedPoint):
+    __slots__ = '_name',
 
 
 @overload
@@ -238,7 +259,6 @@ def point(x_or_r: Real, y_or_fi: Real, /, name: str,
 
 
 def point(x_or_r: Real, y_or_fi: Real, /, name: str = None, polar: bool = False, fixed: bool = True):
-    name = name.strip()
     if name == '':
         raise ValueError('name of a point cannot be empty')
 
