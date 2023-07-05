@@ -93,19 +93,25 @@ class Sector:
         self.circle.radius = value
 
     def rotate(self, angle: Real):
-        self.start_arm += angle
+        """
+        Rotates the sector by given angle clockwise
+        """
+        self.start_arm -= angle
 
     def is_point_inside(self, p: Point) -> bool:
         if not self.circle.is_point_inside(p):
             return False
 
+        if p.r2 == 0:
+            return True
+
         start = self.start_arm
         end = self.end_arm_reduced
         fi = (p - self.center).fi
         if end > start:
-            return start <= fi or fi <= end
+            return end <= fi or fi <= start
 
-        return start <= fi <= end
+        return end <= fi <= start
 
     def __repr__(self):
         return (
