@@ -1,9 +1,6 @@
-from point import Point
-from common import *
-from figures import Sector, Circle
 import plotly.graph_objects as go
-from algorithm import find_all_groups
-from data import CyclicList
+
+from geometry.figures import Sector
 
 
 # TODO: add slots to classes

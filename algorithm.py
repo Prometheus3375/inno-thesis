@@ -2,9 +2,9 @@ from collections.abc import Iterable, Iterator
 from typing import NamedTuple
 
 from common import Real, TWOPI, reduce_angle
-from data import CyclicTuple
-from figures import Sector
-from point import Point
+from cyclic import CyclicTuple
+from geometry.figures import Sector
+from geometry.point import Point
 
 
 def circular_subtraction(a1: float, a2: float) -> float:
