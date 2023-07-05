@@ -1,13 +1,16 @@
-from typing import final
+from collections.abc import Iterable, Iterator
+from typing import Generic, TypeVar, final
 
 from geometry.point import PointBase
 
+P = TypeVar('P', bound=PointBase, covariant=True)
+
 
 @final
-class PointWrapper:
+class PointWrapper(Generic[P]):
     __slots__ = '_point', '_hash'
 
-    def __init__(self, point: PointBase, /):
+    def __init__(self, point: P, /):
         self._point = point
         self._hash = hash(id(point))
 
@@ -38,3 +41,11 @@ class PointWrapper:
 
     def __hash__(self, /):
         return self._hash
+
+    @classmethod
+    def wrap(cls, points: Iterable[P]) -> Iterator['PointWrapper[P]']:
+        return (cls(p) for p in points)
+
+    @staticmethod
+    def unwrap(wrapped: Iterable['PointWrapper[P]']) -> Iterator[P]:
+        return (pw.p for pw in wrapped)
