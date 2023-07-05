@@ -171,3 +171,4 @@ class Point:
 
 
 # TODO: create named and fixed point
+# TODO: change errors in math methods, see https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types

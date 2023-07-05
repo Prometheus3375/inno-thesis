@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 from algorithm import find_all_groups
 from data import CyclicList
 
+# TODO: add slots to classes
+
 
 def draw_sector(sector: Sector):
     center = sector.center
