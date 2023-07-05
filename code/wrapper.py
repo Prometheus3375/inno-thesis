@@ -42,10 +42,10 @@ class PointWrapper(Generic[P]):
     def __hash__(self, /):
         return self._hash
 
-    @classmethod
-    def wrap(cls, points: Iterable[P]) -> Iterator['PointWrapper[P]']:
-        return (cls(p) for p in points)
 
-    @staticmethod
-    def unwrap(wrapped: Iterable['PointWrapper[P]']) -> Iterator[P]:
-        return (pw.p for pw in wrapped)
+def wrap(points: Iterable[P]) -> Iterator[PointWrapper[P]]:
+    return (PointWrapper(p) for p in points)
+
+
+def unwrap(wrapped: Iterable[PointWrapper[P]]) -> Iterator[P]:
+    return (pw.p for pw in wrapped)
