@@ -22,6 +22,10 @@ class CircleBase:
     def radius(self, /):
         return self._radius
 
+    @property
+    def r2(self, /):
+        return self._radius * self._radius
+
     def __repr__(self, /):
         return f'{self.__class__.__name__}(center={self.center}, r={self.radius:.2g})'
 
@@ -49,7 +53,7 @@ class CircleBase:
     def is_point_inside(self, p: PointBase, /) -> bool:
         x = p.x - self.center.x
         y = p.y - self.center.y
-        return (x * x + y * y) <= self.radius * self.radius
+        return (x * x + y * y) <= self.r2
 
     def __contains__(self, item: PointBase, /):
         if isinstance(item, PointBase):
