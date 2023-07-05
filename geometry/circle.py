@@ -38,6 +38,9 @@ class CircleBase:
     def fix(self, /) -> 'FixedCircle':
         raise NotImplementedError
 
+    def unfix(self, /) -> 'FixedCircle':
+        raise NotImplementedError
+
     def __eq__(self, other, /):
         if isinstance(other, CircleBase):
             return self.radius == other.radius and self.center == other.center
@@ -81,6 +84,9 @@ class FixedCircle(CircleBase):
         self._hash = hash(frozenset((center, radius)))
 
     def fix(self, /):
+        return self
+
+    def unfix(self, /):
         return self
 
     def __hash__(self, /):
