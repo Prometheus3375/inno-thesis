@@ -2,22 +2,21 @@ from common import Real
 from .point import FixedPoint, PointBase
 
 
+def check_radius(value: float, /):
+    if value <= 0:
+        raise ValueError(f'radius must be positive, got {value}')
+
+
 class CircleBase:
     __slots__ = '_center', '_radius'
 
     def __init__(self, center: PointBase, radius: float, /):
         self._center = center
-        self._set_radius(radius)
+        self._radius = radius
 
     @property
     def center(self, /):
         return self._center
-
-    def _set_radius(self, value: float, /):
-        if value <= 0:
-            raise ValueError(f'radius must be positive, got {value}')
-
-        self._radius = value
 
     @property
     def radius(self, /):
@@ -85,4 +84,6 @@ class FixedCircle(CircleBase):
 
 
 def circle(center: PointBase, radius: Real, /):
+    check_radius(radius)
+
     return FixedCircle(center.fix(), float(radius))
