@@ -67,11 +67,11 @@ class PointBase:
         return f'{self.__class__.__name__}({self._str_x()}, {self._str_y()})'
 
     @staticmethod
-    def _new(x: float, y: float, /):
+    def _new_(x: float, y: float, /) -> 'PointBase':
         raise NotImplementedError
 
     def copy(self, /):
-        return self._new(self.x, self.y)
+        return self._new_(self.x, self.y)
 
     def __getnewargs__(self, /):
         return self._x, self._y
@@ -95,7 +95,7 @@ class PointBase:
         return NotImplemented
 
     def __neg__(self, /):
-        return self._new(-self.x, -self.y)
+        return self._new_(-self.x, -self.y)
 
     def __pos__(self, /):
         return self.copy()
@@ -105,10 +105,10 @@ class PointBase:
 
     def __add__(self, other, /):
         if isinstance(other, real):
-            return self._new(self.x + other, self.y + other)
+            return self._new_(self.x + other, self.y + other)
 
         if isinstance(other, PointBase):
-            return self._new(self.x + other.x, self.y + other.y)
+            return self._new_(self.x + other.x, self.y + other.y)
 
         return NotImplemented
 
@@ -117,28 +117,28 @@ class PointBase:
 
     def __sub__(self, other, /):
         if isinstance(other, real):
-            return self._new(self.x - other, self.y - other)
+            return self._new_(self.x - other, self.y - other)
 
         elif isinstance(other, PointBase):
-            return self._new(self.x - other.x, self.y - other.y)
+            return self._new_(self.x - other.x, self.y - other.y)
 
         return NotImplemented
 
     def __rsub__(self, other, /):
         if isinstance(other, real):
-            return self._new(other - self.x, other - self.y)
+            return self._new_(other - self.x, other - self.y)
 
         elif isinstance(other, PointBase):
-            return self._new(other.x - self.x, other.y - self.y)
+            return self._new_(other.x - self.x, other.y - self.y)
 
         return NotImplemented
 
     def __mul__(self, other, /):
         if isinstance(other, real):
-            return self._new(self.x * other, self.y * other)
+            return self._new_(self.x * other, self.y * other)
 
         if isinstance(other, PointBase):
-            return self._new(self.x * other.x, self.y * other.y)
+            return self._new_(self.x * other.x, self.y * other.y)
 
         return NotImplemented
 
@@ -147,37 +147,37 @@ class PointBase:
 
     def __truediv__(self, other, /):
         if isinstance(other, real):
-            return self._new(self.x / other, self.y / other)
+            return self._new_(self.x / other, self.y / other)
 
         if isinstance(other, self.__class__):
-            return self._new(self.x / other.x, self.y / other.x)
+            return self._new_(self.x / other.x, self.y / other.x)
 
         return NotImplemented
 
     def __rtruediv__(self, other, /):
         if isinstance(other, real):
-            return self._new(other / self.x, other / self.y)
+            return self._new_(other / self.x, other / self.y)
 
         if isinstance(other, self.__class__):
-            return self._new(other.x / self.x, other.x / self.y)
+            return self._new_(other.x / self.x, other.x / self.y)
 
         return NotImplemented
 
     def __floordiv__(self, other, /):
         if isinstance(other, real):
-            return self._new(self.x // other, self.y // other)
+            return self._new_(self.x // other, self.y // other)
 
         if isinstance(other, self.__class__):
-            return self._new(self.x // other.x, self.y // other.x)
+            return self._new_(self.x // other.x, self.y // other.x)
 
         return NotImplemented
 
     def __rfloordiv__(self, other, /):
         if isinstance(other, real):
-            return self._new(other // self.x, other // self.y)
+            return self._new_(other // self.x, other // self.y)
 
         if isinstance(other, self.__class__):
-            return self._new(other.x // self.x, other.x // self.y)
+            return self._new_(other.x // self.x, other.x // self.y)
 
         return NotImplemented
 
@@ -190,7 +190,7 @@ class FixedPoint(PointBase):
         self._hash = hash((x, y))
 
     @staticmethod
-    def _new(x: float, y: float, /):
+    def _new_(x: float, y: float, /) -> 'FixedPoint':
         return FixedPoint(x, y)
 
     def fix(self, /):
@@ -227,7 +227,7 @@ class MutablePoint(PointBase):
         self._y = r * sin(fi)
 
     @staticmethod
-    def _new(x: float, y: float, /):
+    def _new_(x: float, y: float, /) -> 'MutablePoint':
         return MutablePoint(x, y)
 
     def fix(self, /):
