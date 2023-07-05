@@ -1,5 +1,4 @@
 from collections.abc import Collection, Iterable, Iterator, Sequence
-from math import ceil
 from typing import Any, Generic, TypeVar, overload
 
 T = TypeVar('T')
@@ -30,15 +29,10 @@ class CyclicSequence(Generic[T]):
 
         if step > 0:
             compare = int.__lt__
-            if start > stop:
-                stop += ceil((start - stop) / len(self)) * len(self)
         else:
             compare = int.__gt__
-            if start < stop:
-                start += ceil((stop - start) / len(self)) * len(self)
 
-        if start != stop:
-            # compare(start, stop) is True here
+        if compare(start, stop):
             start_idx = self._convert_index(start)
             yield start_idx
             start += step
