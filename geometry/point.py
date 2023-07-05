@@ -1,6 +1,7 @@
+from math import atan2, cos, sin, sqrt
 from typing import Literal, overload
 
-from common import *
+from common import Real, deg, real
 
 
 class PointBase:
