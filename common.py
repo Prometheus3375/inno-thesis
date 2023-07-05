@@ -1,6 +1,6 @@
-from typing import Union as _Union
 # noinspection PyUnresolvedReferences
-from math import sqrt, pi as PI, sin, cos, tan, atan2, radians as rad, degrees as deg, floor, ceil
+from math import atan2, ceil, cos, degrees as deg, floor, pi as PI, radians as rad, sin, sqrt, tan
+from typing import Union as _Union
 
 real = (int, float)
 Real = _Union[int, float]

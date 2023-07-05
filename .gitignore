@@ -1,0 +1,6 @@
+# Project
+env/
+
+# Common
+.idea/
+__pycache__/
