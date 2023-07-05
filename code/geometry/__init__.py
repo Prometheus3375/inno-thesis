@@ -1,3 +1,3 @@
-from .circle import circle
-from .point import cartesian, polar
-from .sector import sector
+from .circle import Circle
+from .point import Cartesian, Polar
+from .sector import Sector

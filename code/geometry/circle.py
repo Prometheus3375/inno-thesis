@@ -93,7 +93,7 @@ class FixedCircle(CircleBase):
         return self._hash
 
 
-def circle(center: PointBase, radius: Real, /):
+def Circle(center: PointBase, radius: Real, /):
     check_radius(radius)
 
     return FixedCircle(center.fix(), float(radius))

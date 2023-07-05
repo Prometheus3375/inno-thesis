@@ -5,7 +5,7 @@ from typing import Literal, Union, overload
 from common import PI, Real, TWOPI, deg, real, reduce_angle
 from functions import qbezeir_svg_given_middle
 from .circle import CircleBase, FixedCircle
-from .point import PointBase, polar
+from .point import PointBase, Polar
 
 
 def check_arc(value: float, /):
@@ -110,7 +110,7 @@ class SectorBase:
         center = self.circle.center
         r = self.circle.radius
         n = ceil(self.arc / step_angle) - 1
-        p0 = polar(r, self._arm) + center
+        p0 = Polar(r, self._arm) + center
         path = StringIO()
         path.write(
             f'M {center.x} {center.y} '
@@ -118,14 +118,14 @@ class SectorBase:
         )
         arm = self.start_arm
         for _ in range(n):
-            pm = polar(r, arm - step_angle / 2) + center
+            pm = Polar(r, arm - step_angle / 2) + center
             arm -= step_angle
-            p2 = polar(r, arm) + center
+            p2 = Polar(r, arm) + center
             path.write(f'{qbezeir_svg_given_middle(p0, p2, pm)} ')
             p0 = p2
 
-        p2 = polar(r, self.end_arm) + center
-        pm = polar(r, (arm + self.end_arm) / 2) + center
+        p2 = Polar(r, self.end_arm) + center
+        pm = Polar(r, (arm + self.end_arm) / 2) + center
         path.write(f'{qbezeir_svg_given_middle(p0, p2, pm)} Z')
 
         return dict(
@@ -193,23 +193,23 @@ class MutableSector(SectorBase):
 
 
 @overload
-def sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /) -> FixedSector: ...
+def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /) -> FixedSector: ...
 
 
 @overload
-def sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: Literal[True]) -> FixedSector: ...
+def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: Literal[True]) -> FixedSector: ...
 
 
 @overload
-def sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: Literal[False]) -> MutableSector: ...
+def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: Literal[False]) -> MutableSector: ...
 
 
 @overload
-def sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *,
+def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *,
            fix: bool) -> Union[FixedSector, MutableSector]: ...
 
 
-def sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: bool = True) -> SectorBase:
+def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: bool = True) -> SectorBase:
     check_arc(arc)
     arc = float(arc)
     start_arm = float(start_arm)
