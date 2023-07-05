@@ -2,6 +2,5 @@
 venv/
 
 # Common
-.idea/
 __pycache__/
 pycharm.py
