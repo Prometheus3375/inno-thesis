@@ -16,7 +16,7 @@ def check_arc(value: float, /):
 class SectorBase:
     __slots__ = '_circle', '_arc', '_arm'
 
-    def __init__(self, circle: CircleBase, arc: float, arm: float, /):
+    def __init__(self, circle: FixedCircle, arc: float, arm: float, /):
         self._circle = circle
         self._arc = arc
         self._arm = arm
@@ -145,7 +145,7 @@ class FixedSector(SectorBase):
         return self
 
     def unfix(self, /):
-        return MutableSector(self.circle.unfix(), self.arc, self.start_arm)
+        return MutableSector(self.circle, self.arc, self.start_arm)
 
     def __hash__(self, /):
         return self._hash
@@ -153,6 +153,8 @@ class FixedSector(SectorBase):
 
 class MutableSector(SectorBase):
     __slots__ = ()
+
+    # TODO: add circle changing
 
     @property
     def arc(self, /):
@@ -180,7 +182,7 @@ class MutableSector(SectorBase):
         self._arm = reduce_angle(value + self._arc)
 
     def fix(self, /):
-        return FixedSector(self.circle.fix(), self.arc, self.start_arm)
+        return FixedSector(self.circle, self.arc, self.start_arm)
 
     def unfix(self, /):
         return self
@@ -217,4 +219,4 @@ def Sector(circle: CircleBase, arc: Real, start_arm: Real = PI, /, *, fix: bool 
     if fix:
         return FixedSector(circle.fix(), arc, start_arm)
 
-    return MutableSector(circle.unfix(), arc, start_arm)
+    return MutableSector(circle.fix(), arc, start_arm)

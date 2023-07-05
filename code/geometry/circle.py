@@ -10,7 +10,7 @@ def check_radius(value: float, /):
 class CircleBase:
     __slots__ = '_center', '_radius'
 
-    def __init__(self, center: PointBase, radius: float, /):
+    def __init__(self, center: FixedPoint, radius: float, /):
         self._center = center
         self._radius = radius
 
