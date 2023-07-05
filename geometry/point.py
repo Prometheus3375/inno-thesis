@@ -1,174 +1,259 @@
+from typing import Literal, overload
+
 from common import *
 
 
-class Point:
-    def __init__(self, x: Real = 0., y: Real = 0.):
-        self.x = x
-        self.y = y
+class PointBase:
+    __slots__ = '_x', '_y'
+
+    def __init__(self, x: float, y: float, /):
+        self._x = x
+        self._y = y
 
     @property
-    def fi(self) -> float:
-        return atan2(self.y, self.x)
+    def x(self, /) -> float:
+        return self._x
 
-    @fi.setter
-    def fi(self, fi: Real):
-        r = self.r
-        self.x = r * cos(fi)
-        self.y = r * sin(fi)
+    @property
+    def y(self, /) -> float:
+        return self._x
 
     @property
     def r2(self) -> float:
         return self.x * self.x + self.y * self.y
 
-    @r2.setter
-    def r2(self, r: Real):
-        self.r = sqrt(r)
-
     @property
-    def r(self) -> float:
+    def r(self, /) -> float:
         return sqrt(self.r2)
 
-    @r.setter
-    def r(self, r: Real):
-        fi = self.fi
-        self.x = r * cos(fi)
-        self.y = r * sin(fi)
-
-    def __repr__(self):
-        return f'(x={self.x:.2g}, y={self.y:.2g})'
-
     @property
-    def C(self) -> str:
-        return self.__repr__()
+    def fi(self, /) -> float:
+        return atan2(self.y, self.x)
 
-    @property
-    def P(self) -> str:
-        return f'(r={self.r:.2g}, φ={deg(self.fi):.0f}°)'
+    def _new(self, x: float, y: float, /):
+        return self.__class__(x, y)
 
-    def copy(self):
-        return self.__class__(self.x, self.y)
+    def copy(self, /):
+        return self._new(self.x, self.y)
 
-    clone = copy
+    def _str_x(self, named: bool = True, /):
+        return f'x={self.x:.2g}' if named else f'{self.x:.2g}'
 
-    @classmethod
-    def polar(cls, r: Real = 0., fi: Real = 0.):
-        return cls(r * cos(fi), r * sin(fi))
+    def _str_y(self, named: bool = True, /):
+        return f'y={self.y:.2g}' if named else f'{self.y:.2g}'
 
-    def __iadd__(self, other):
-        if isinstance(other, real):
-            self.x += other
-            self.y += other
-        elif isinstance(other, self.__class__):
-            self.x += other.x
-            self.y += other.y
-        else:
-            raise TypeError(f'Addition is not defined between {self.__class__} and {other.__class__} instances')
-        return self
+    def _str_r(self, named: bool = True, /):
+        return f'r={self.r:.2g}' if named else f'{self.r:.2g}'
 
-    def __add__(self, other):
-        return self.copy().__iadd__(other)
+    def _str_fi(self, named: bool = True, /):
+        return f'φ={deg(self.fi):.0f}°' if named else f'{deg(self.fi):.0f}°'
 
-    def __radd__(self, other):
-        return self.__add__(other)
+    def __str__(self, /):
+        return f'({self._str_x(False)}, {self._str_y(False)})'
 
-    def __isub__(self, other):
-        if isinstance(other, real):
-            self.x -= other
-            self.y -= other
-        elif isinstance(other, self.__class__):
-            self.x -= other.x
-            self.y -= other.y
-        else:
-            raise TypeError(f'Subtraction is not defined between {self.__class__} and {other.__class__} instances')
-        return self
+    def _str_cartesian(self, /):
+        return f'({self._str_x()}, {self._str_y()})'
 
-    def __sub__(self, other):
-        return self.copy().__isub__(other)
+    def _str_polar(self, /):
+        return f'({self._str_r()}, {self._str_fi()})'
 
-    def __rsub__(self, other):
-        if isinstance(other, real):
-            return self.__class__(other - self.x, other - self.y)
-        if isinstance(other, self.__class__):
-            return other.__sub__(self)
+    def __format__(self, format_spec, /):
+        if format_spec == '':
+            return self.__str__()
+        if format_spec == 'c':
+            return self._str_cartesian()
+        if format_spec == 'p':
+            return self._str_polar()
 
-        raise TypeError(f'Subtraction is not defined between {self.__class__} and {other.__class__} instances')
+        raise ValueError(f'invalid format specifier \'{format_spec}\' for {self.__class__.__name__}; '
+                         f'allowed specifiers are \'c\' and \'p\'')
 
-    def __imul__(self, other):
-        if isinstance(other, real):
-            self.x *= other
-            self.y *= other
-        elif isinstance(other, self.__class__):
-            self.x *= other.x
-            self.y *= other.y
-        else:
-            raise TypeError(f'Multiplication is not defined between {self.__class__} and {other.__class__} instances')
-        return self
+    def __repr__(self, /):
+        return f'{self.__class__.__name__}({self._str_x()}, {self._str_y()})'
 
-    def __mul__(self, other):
-        return self.copy().__imul__(other)
+    def __getnewargs__(self, /):
+        return self._x, self._y
 
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __itruediv__(self, other):
-        if isinstance(other, real):
-            self.x /= other
-            self.y /= other
-        elif isinstance(other, self.__class__):
-            self.x /= other.x
-            self.y /= other.y
-        else:
-            raise TypeError(f'Division is not defined between {self.__class__} and {other.__class__} instances')
-        return self
-
-    def __truediv__(self, other):
-        return self.copy().__itruediv__(other)
-
-    def __rtruediv__(self, other):
-        if isinstance(other, real):
-            return self.__class__(other / self.x, other / self.y)
-        if isinstance(other, self.__class__):
-            return other.__truediv__(self)
-
-        raise TypeError(f'Division is not defined between {self.__class__} and {other.__class__} instances')
-
-    def __ifloordiv__(self, other):
-        if isinstance(other, real):
-            self.x //= other
-            self.y //= other
-        elif isinstance(other, self.__class__):
-            self.x //= other.x
-            self.y //= other.y
-        else:
-            raise TypeError(f'Floor division is not defined between {self.__class__} and {other.__class__} instances')
-        return self
-
-    def __floordiv__(self, other):
-        return self.copy().__ifloordiv__(other)
-
-    def __rfloordiv__(self, other):
-        if isinstance(other, real):
-            return self.__class__(other // self.x, other // self.y)
-        if isinstance(other, self.__class__):
-            return other.__floordiv__(self)
-
-        raise TypeError(f'Floor division is not defined between {self.__class__} and {other.__class__} instances')
-
-    def __neg__(self):
-        return self.__class__(-self.x, -self.y)
-
-    def __pos__(self):
-        return self.copy()
-
-    def __abs__(self):
-        return self.r
-
-    def __eq__(self, other: 'Point'):
+    def __eq__(self, other: 'PointBase', /):
         return self.x == other.x and self.y == other.y
 
-    def __ne__(self, other: 'Point'):
+    def __ne__(self, other: 'PointBase', /):
         return self.x != other.x or self.y != other.y
 
+    def __neg__(self, /):
+        return self._new(-self.x, -self.y)
 
-# TODO: create named and fixed point
-# TODO: change errors in math methods, see https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types
+    def __pos__(self, /):
+        return self.copy()
+
+    def __abs__(self, /):
+        return self.r
+
+    def __add__(self, other, /):
+        if isinstance(other, real):
+            return self._new(self.x + other, self.y + other)
+
+        if isinstance(other, PointBase):
+            return self._new(self.x + other.x, self.y + other.y)
+
+        return NotImplemented
+
+    def __radd__(self, other, /):
+        return self.__add__(other)
+
+    def __sub__(self, other, /):
+        if isinstance(other, real):
+            return self._new(self.x - other, self.y - other)
+
+        elif isinstance(other, PointBase):
+            return self._new(self.x - other.x, self.y - other.y)
+
+        return NotImplemented
+
+    def __rsub__(self, other, /):
+        if isinstance(other, real):
+            return self._new(other - self.x, other - self.y)
+
+        elif isinstance(other, PointBase):
+            return self._new(other.x - self.x, other.y - self.y)
+
+        return NotImplemented
+
+    def __mul__(self, other, /):
+        if isinstance(other, real):
+            return self._new(self.x * other, self.y * other)
+
+        if isinstance(other, PointBase):
+            return self._new(self.x * other.x, self.y * other.y)
+
+        return NotImplemented
+
+    def __rmul__(self, other, /):
+        return self.__mul__(other)
+
+    def __truediv__(self, other, /):
+        if isinstance(other, real):
+            return self._new(self.x / other, self.y / other)
+
+        if isinstance(other, self.__class__):
+            return self._new(self.x / other.x, self.y / other.x)
+
+        return NotImplemented
+
+    def __rtruediv__(self, other, /):
+        if isinstance(other, real):
+            return self._new(other / self.x, other / self.y)
+
+        if isinstance(other, self.__class__):
+            return self._new(other.x / self.x, other.x / self.y)
+
+        return NotImplemented
+
+    def __floordiv__(self, other, /):
+        if isinstance(other, real):
+            return self._new(self.x // other, self.y // other)
+
+        if isinstance(other, self.__class__):
+            return self._new(self.x // other.x, self.y // other.x)
+
+        return NotImplemented
+
+    def __rfloordiv__(self, other, /):
+        if isinstance(other, real):
+            return self._new(other // self.x, other // self.y)
+
+        if isinstance(other, self.__class__):
+            return self._new(other.x // self.x, other.x // self.y)
+
+        return NotImplemented
+
+
+class FixedPoint(PointBase):
+    __slots__ = '_hash', '_fi', '_r'
+
+    def __init__(self, x: float, y: float, /):
+        super().__init__(x, y)
+        self._r = PointBase.r.fget()
+        self._fi = PointBase.fi.fget()
+        self._hash = hash((x, y))
+
+    @PointBase.r2.getter
+    def r2(self, /) -> float:
+        return self._r * self._r
+
+    @PointBase.r.getter
+    def r(self, /) -> float:
+        return self._r
+
+    @PointBase.fi.getter
+    def fi(self, /) -> float:
+        return self._fi
+
+    def __hash__(self, /):
+        return self._hash
+
+
+class NamedPoint(PointBase):
+    __slots__ = '_name',
+
+    def __init__(self, name: str, x: float, y: float, /):
+        super().__init__(x, y)
+        self._name = name
+
+    @property
+    def name(self, /) -> str:
+        return self._name
+
+    def _new(self, x: float, y: float, name: str = None, /):
+        if name:
+            return self.__class__(name, x, y)
+
+        return super().__class__(x, y)
+
+    def __str__(self, /):
+        return f'{self.name}({self._str_x(False)}, {self._str_y(False)})'
+
+    def _str_cartesian(self, /):
+        return f'{self.name}({self._str_x()}, {self._str_y()})'
+
+    def _str_polar(self, /):
+        return f'{self.name}({self._str_r()}, {self._str_fi()})'
+
+    def __repr__(self, /):
+        return f'{self.__class__.__name__}(name={self.name}, {self._str_x()}, {self._str_y()})'
+
+
+class NamedFixedPoint(NamedPoint, PointBase):
+    __slots__ = ()
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, /,
+          polar: bool = False, fixed: Literal[True] = True) -> FixedPoint: ...
+
+
+@overload
+def point(x_or_r: Real, y_or_fi: Real, /, name: str,
+          polar: bool = False, fixed: Literal[True] = True) -> NamedFixedPoint: ...
+
+
+def point(x_or_r: Real, y_or_fi: Real, /, name: str = None, polar: bool = False, fixed: bool = True):
+    name = name.strip()
+    if name == '':
+        raise ValueError('name of a point cannot be empty')
+
+    if polar:
+        x = x_or_r * cos(y_or_fi)
+        y = x_or_r * sin(y_or_fi)
+    else:
+        x = float(x_or_r)
+        y = float(y_or_fi)
+
+    if fixed:
+        if name:
+            return NamedFixedPoint(name, x, y)
+
+        return FixedPoint(x, y)
+
+    else:
+        raise NotImplementedError(f'mutable points are not implemented')
