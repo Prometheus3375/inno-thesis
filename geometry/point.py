@@ -79,6 +79,9 @@ class PointBase:
     def fix(self, /) -> 'FixedPoint':
         raise NotImplementedError
 
+    def unfix(self, /) -> 'MutablePoint':
+        raise NotImplementedError
+
     def __eq__(self, other, /):
         if isinstance(other, PointBase):
             return self.x == other.x and self.y == other.y
@@ -193,6 +196,9 @@ class FixedPoint(PointBase):
     def fix(self, /):
         return self
 
+    def unfix(self, /):
+        return MutablePoint(self.x, self.y)
+
     def __hash__(self, /):
         return self._hash
 
@@ -226,6 +232,9 @@ class MutablePoint(PointBase):
 
     def fix(self, /):
         return FixedPoint(self.x, self.y)
+
+    def unfix(self, /):
+        return self
 
     def __iadd__(self, other, /):
         if isinstance(other, real):
@@ -334,15 +343,15 @@ def cartesian(x: Real, y: Real, /) -> FixedPoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, /, *, fixed: Literal[True]) -> FixedPoint: ...
+def cartesian(x: Real, y: Real, /, *, fix: Literal[True]) -> FixedPoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, /, *, fixed: Literal[False]) -> MutablePoint: ...
+def cartesian(x: Real, y: Real, /, *, fix: Literal[False]) -> MutablePoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, /, *, fixed: bool) -> Union[FixedPoint, MutablePoint]: ...
+def cartesian(x: Real, y: Real, /, *, fix: bool) -> Union[FixedPoint, MutablePoint]: ...
 
 
 @overload
@@ -350,18 +359,18 @@ def cartesian(x: Real, y: Real, name: str, /) -> NamedFixedPoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, name: str, /, *, fixed: Literal[True], ) -> NamedFixedPoint: ...
+def cartesian(x: Real, y: Real, name: str, /, *, fix: Literal[True], ) -> NamedFixedPoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, name: str, /, *, fixed: Literal[False]) -> NamedMutablePoint: ...
+def cartesian(x: Real, y: Real, name: str, /, *, fix: Literal[False]) -> NamedMutablePoint: ...
 
 
 @overload
-def cartesian(x: Real, y: Real, name: str, /, *, fixed: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
+def cartesian(x: Real, y: Real, name: str, /, *, fix: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
 
 
-def cartesian(x: Real, y: Real, name: str = None, /, *, fixed: bool = True) -> PointBase:
+def cartesian(x: Real, y: Real, name: str = None, /, *, fix: bool = True) -> PointBase:
     if isinstance(name, str):
         if name == '':
             raise ValueError('name of a point cannot be empty')
@@ -378,7 +387,7 @@ def cartesian(x: Real, y: Real, name: str = None, /, *, fixed: bool = True) -> P
     x = float(x)
     y = float(y)
 
-    if fixed:
+    if fix:
         if name:
             return NamedFixedPoint(name, x, y)
 
@@ -396,15 +405,15 @@ def polar(r: Real, fi: Real, /) -> FixedPoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, /, *, fixed: Literal[True]) -> FixedPoint: ...
+def polar(r: Real, fi: Real, /, *, fix: Literal[True]) -> FixedPoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, /, *, fixed: Literal[False]) -> MutablePoint: ...
+def polar(r: Real, fi: Real, /, *, fix: Literal[False]) -> MutablePoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, /, *, fixed: bool) -> Union[FixedPoint, MutablePoint]: ...
+def polar(r: Real, fi: Real, /, *, fix: bool) -> Union[FixedPoint, MutablePoint]: ...
 
 
 @overload
@@ -412,16 +421,16 @@ def polar(r: Real, fi: Real, name: str, /) -> NamedFixedPoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, name: str, /, *, fixed: Literal[True]) -> NamedFixedPoint: ...
+def polar(r: Real, fi: Real, name: str, /, *, fix: Literal[True]) -> NamedFixedPoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, name: str, /, *, fixed: Literal[False]) -> NamedMutablePoint: ...
+def polar(r: Real, fi: Real, name: str, /, *, fix: Literal[False]) -> NamedMutablePoint: ...
 
 
 @overload
-def polar(r: Real, fi: Real, name: str, /, *, fixed: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
+def polar(r: Real, fi: Real, name: str, /, *, fix: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
 
 
-def polar(r: Real, fi: Real, name: str = None, /, *, fixed: bool = True) -> PointBase:
-    return cartesian(r * cos(fi), r * sin(fi), name, fixed=fixed)
+def polar(r: Real, fi: Real, name: str = None, /, *, fix: bool = True) -> PointBase:
+    return cartesian(r * cos(fi), r * sin(fi), name, fix=fix)
