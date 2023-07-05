@@ -99,15 +99,17 @@ class Sector:
         self.start_arm -= angle
 
     def is_point_inside(self, p: Point) -> bool:
-        if not self.circle.is_point_inside(p):
-            return False
+        # Another way https://stackoverflow.com/a/13675772
 
+        p = p - self.center
+        if p.r2 > self.r ** 2:
+            return False
         if p.r2 == 0:
             return True
 
         start = self.start_arm
         end = self.end_arm_reduced
-        fi = (p - self.center).fi
+        fi = p.fi
         if end > start:
             return end <= fi or fi <= start
 
