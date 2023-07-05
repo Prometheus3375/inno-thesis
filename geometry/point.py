@@ -1,5 +1,5 @@
 from math import atan2, cos, sin, sqrt
-from typing import Literal, overload
+from typing import Literal, Union, overload
 
 from common import Real, deg, real
 
@@ -180,28 +180,11 @@ class PointBase:
 
 
 class FixedPoint(PointBase):
-    __slots__ = '_hash', '_fi', '_r2', '_r'
-
-    # r2 is necessary to store, because sqrt(a) * sqrt(a) != a in general
+    __slots__ = '_hash',
 
     def __init__(self, x: float, y: float, /):
         super().__init__(x, y)
-        self._r2 = x * x + y * y
-        self._r = sqrt(self._r2)
-        self._fi = atan2(y, x)
         self._hash = hash((x, y))
-
-    @PointBase.r2.getter
-    def r2(self, /) -> float:
-        return self._r2
-
-    @PointBase.r.getter
-    def r(self, /) -> float:
-        return self._r
-
-    @PointBase.fi.getter
-    def fi(self, /) -> float:
-        return self._fi
 
     @staticmethod
     def _new(x: float, y: float, /):
@@ -347,36 +330,38 @@ class NamedMutablePoint(NamedPointBase, MutablePoint):
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, /, *,
-          polar: bool = False) -> FixedPoint: ...
+def cartesian(x: Real, y: Real, /) -> FixedPoint: ...
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, /, *,
-          fixed: Literal[True], polar: bool = False) -> FixedPoint: ...
+def cartesian(x: Real, y: Real, /, *, fixed: Literal[True]) -> FixedPoint: ...
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, /, *,
-          fixed: Literal[False], polar: bool = False) -> MutablePoint: ...
+def cartesian(x: Real, y: Real, /, *, fixed: Literal[False]) -> MutablePoint: ...
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
-          polar: bool = False) -> NamedFixedPoint: ...
+def cartesian(x: Real, y: Real, /, *, fixed: bool) -> Union[FixedPoint, MutablePoint]: ...
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
-          fixed: Literal[True], polar: bool = False) -> NamedFixedPoint: ...
+def cartesian(x: Real, y: Real, name: str, /) -> NamedFixedPoint: ...
 
 
 @overload
-def point(x_or_r: Real, y_or_fi: Real, name: str, /, *,
-          fixed: Literal[False], polar: bool = False) -> NamedMutablePoint: ...
+def cartesian(x: Real, y: Real, name: str, /, *, fixed: Literal[True], ) -> NamedFixedPoint: ...
 
 
-def point(x_or_r: Real, y_or_fi: Real, name: str = None, /, *, fixed: bool = True, polar: bool = False) -> PointBase:
+@overload
+def cartesian(x: Real, y: Real, name: str, /, *, fixed: Literal[False]) -> NamedMutablePoint: ...
+
+
+@overload
+def cartesian(x: Real, y: Real, name: str, /, *, fixed: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
+
+
+def cartesian(x: Real, y: Real, name: str = None, /, *, fixed: bool = True) -> PointBase:
     if isinstance(name, str):
         if name == '':
             raise ValueError('name of a point cannot be empty')
@@ -390,12 +375,8 @@ def point(x_or_r: Real, y_or_fi: Real, name: str = None, /, *, fixed: bool = Tru
     elif name is not None:
         raise TypeError(f'name of a point must be a string, got {type(name)}')
 
-    if polar:
-        x = x_or_r * cos(y_or_fi)
-        y = x_or_r * sin(y_or_fi)
-    else:
-        x = float(x_or_r)
-        y = float(y_or_fi)
+    x = float(x)
+    y = float(y)
 
     if fixed:
         if name:
@@ -408,3 +389,39 @@ def point(x_or_r: Real, y_or_fi: Real, name: str = None, /, *, fixed: bool = Tru
             return NamedMutablePoint(name, x, y)
 
         return MutablePoint(x, y)
+
+
+@overload
+def polar(r: Real, fi: Real, /) -> FixedPoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, /, *, fixed: Literal[True]) -> FixedPoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, /, *, fixed: Literal[False]) -> MutablePoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, /, *, fixed: bool) -> Union[FixedPoint, MutablePoint]: ...
+
+
+@overload
+def polar(r: Real, fi: Real, name: str, /) -> NamedFixedPoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, name: str, /, *, fixed: Literal[True]) -> NamedFixedPoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, name: str, /, *, fixed: Literal[False]) -> NamedMutablePoint: ...
+
+
+@overload
+def polar(r: Real, fi: Real, name: str, /, *, fixed: bool) -> Union[NamedFixedPoint, NamedMutablePoint]: ...
+
+
+def polar(r: Real, fi: Real, name: str = None, /, *, fixed: bool = True) -> PointBase:
+    return cartesian(r * cos(fi), r * sin(fi), name, fixed=fixed)
