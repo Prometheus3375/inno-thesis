@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Iterator
 from math import atan2
-from typing import NamedTuple, final
+from typing import final
 
 from common import TWOPI
 from cyclic import CyclicList
@@ -36,17 +36,59 @@ class PointAlias(FixedPoint):
         return NotImplemented
 
 
-class Group(NamedTuple):
-    sector: FixedSector
-    points: ListView[PointBase]
+@final
+class Group:
+    __slots__ = '_sector', '_points', '_hash'
 
-    @classmethod
-    def form(cls, sector: FixedSector, aliases: Iterable[PointAlias]):
-        points = []
+    def __init__(self, sector: FixedSector, aliases: Iterable[PointAlias], /):
+        self._sector = sector
+        points: list[PointBase] = []
         for alias in aliases:
             points += alias.aliases
 
-        return cls(sector, ListView(points))
+        self._points = points
+        ids = self.points_ids
+        if len(points) != len(ids):
+            raise ValueError(f'some points are repeated')
+
+        # Groups are identical if they contain the same points
+        # Sectors' arms are not important
+        self._hash = hash(frozenset((sector.arc, sector.circle, ids)))
+
+    @property
+    def sector(self, /):
+        return self._sector
+
+    @property
+    def points(self, /):
+        return ListView(self._points)
+
+    @property
+    def points_ids(self, /):
+        return frozenset(id(p) for p in self._points)
+
+    def __eq__(self, other, /):
+        if isinstance(other, Group):
+            return (
+                self.sector.arc == other.sector.arc and
+                self.sector.circle == other.sector.circle and
+                self.points_ids == other.points_ids
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other, /):
+        if isinstance(other, Group):
+            return (
+                self.sector.arc != other.sector.arc or
+                self.sector.circle != other.sector.circle or
+                self.points_ids != other.points_ids
+            )
+
+        return NotImplemented
+
+    def __hash__(self, /):
+        return self._hash
 
 
 def circular_subtraction(a1: float, a2: float) -> float:
@@ -82,7 +124,7 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
     if n == 1:
         a = aliases[0]
         sector.start_arm = a.fi + sector.arc / 2
-        yield Group.form(sector.fix(), [a])
+        yield Group(sector.fix(), [a])
         return
     # endregion
 
@@ -95,11 +137,10 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
     while afterlast < n and aliases[afterlast].fi in sector:
         afterlast += 1
 
+    first_group = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
+    yield first_group
+
     while True:
-        yield Group.form(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
-
-        prev_angle = sector.start_arm
-
         p1 = aliases[first]
         pn1 = aliases[afterlast]
         alpha = circular_subtraction(sector.start_arm, p1.fi)
@@ -131,14 +172,10 @@ def find_all_groups(sector: SectorBase, points: Iterable[PointBase]) -> Iterator
                 sector.rotate(rho)
                 first += 1
 
-        curr_angle = sector.start_arm
-        # For cases when before rotation start arm was in 3rd quarter (-π, -π/2]
-        # and after rotation in 2nd quarter [π/2, π]
-        if curr_angle > prev_angle:
-            prev_angle += TWOPI
-
-        # If before iteration start arm was bigger than start angle
-        # and after iteration not bigger than start angle,
-        # then break the iteration
-        if curr_angle <= start_angle < prev_angle:
+        # Form new group
+        g = Group(sector.fix(), (aliases[i] for i in aliases.indices_between(first, afterlast)))
+        # If new group is identical to the first one, stop iteration
+        if g == first_group:
             break
+
+        yield g
