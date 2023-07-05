@@ -41,7 +41,7 @@ def bezier(t: Real, /, *values: Union[Real, PointBase]) -> Union[Real, PointBase
     w = binomial_coefficients(n)
     ans = 0
     for i, v in enumerate(values):
-        ans += v * t ** i * mt ** (n - i) * w[i]
+        ans += v * (t ** i) * (mt ** (n - i)) * w[i]
 
     return ans
 
