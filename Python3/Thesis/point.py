@@ -154,7 +154,6 @@ class Point:
 
         raise TypeError(f'Floor division is not defined between {self.__class__} and {other.__class__} instances')
 
-
     def __neg__(self):
         return self.__class__(-self.x, -self.y)
 
@@ -164,3 +163,8 @@ class Point:
     def __abs__(self):
         return self.r
 
+    def __eq__(self, other: 'Point'):
+        return self.x == other.x and self.y == other.y
+
+    def __ne__(self, other: 'Point'):
+        return self.x != other.x or self.y != other.y
